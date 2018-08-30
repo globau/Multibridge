@@ -107,6 +107,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" stop").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" remove").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" list").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" info").color(ChatColor.YELLOW).create());
             return;
         }
 
@@ -125,6 +126,9 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 break;
             case "list":
                 listInstances(sender, arguments.shift(1));
+                break;
+            case "info":
+                infoInstance(sender, arguments.shift(1));
                 break;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
@@ -224,6 +228,9 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                                     break;
                                 case WAITING:
                                     msg.append("WAITING").color(ChatColor.YELLOW);
+                                    break;
+                                case ERROR:
+                                    msg.append("ERROR").color(ChatColor.RED);
                                     break;
                                 default:
                                     msg.append("UNKNOWN").color(ChatColor.RED);
@@ -349,7 +356,13 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         // Schedule the task
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
             // Start Instance
-            instance.start();
+            try {
+                instance.start();
+            } catch (RuntimeException e) {
+                sender.sendMessage(new ComponentBuilder("Unable to start Instance: ").color(ChatColor.RED)
+                        .append(e.getMessage()).color(ChatColor.YELLOW).create());
+                return;
+            }
 
             // Success
             sender.sendMessage(new ComponentBuilder("Instance Starting").color(ChatColor.GREEN).create());
@@ -393,6 +406,86 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             // Success
             sender.sendMessage(new ComponentBuilder("Instance Stopping").color(ChatColor.GREEN).create());
         });
+
+    }
+
+    /**
+     * Get Info on an Instance
+     *
+     */
+    private void infoInstance(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Instance Info Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("Get information about an instance").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance info").color(ChatColor.RED).append(" <instance_name> [<page>]").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance info").color(ChatColor.RED).append(" World1").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance info").color(ChatColor.RED).append(" World1 2").color(ChatColor.YELLOW).create());
+            return;
+        }
+
+        // Arguments
+        final String instanceName = arguments.args.get(0);
+        Instance instance = plugin.getInstanceManager().getInstance(instanceName);
+
+        if (instance == null) {
+            sender.sendMessage(new ComponentBuilder("Cannot find Instance").color(ChatColor.RED).create());
+            return;
+        }
+
+        sender.sendMessage(new ComponentBuilder("--- General Info ---").color(ChatColor.AQUA).create());
+        sender.sendMessage(new ComponentBuilder("Name: ").color(ChatColor.DARK_AQUA)
+                .append(instance.getName()).color(ChatColor.GREEN).create());
+
+        ComponentBuilder msg = new ComponentBuilder("State: ").color(ChatColor.DARK_AQUA)
+                .append("[").color(ChatColor.DARK_GRAY);
+
+        switch(instance.getState()) {
+            case STARTED:
+                msg.append("ACTIVE").color(ChatColor.GREEN);
+                break;
+            case STOPPED:
+                msg.append("STOPPED").color(ChatColor.GRAY);
+                break;
+            case WAITING:
+                msg.append("WAITING").color(ChatColor.YELLOW);
+                break;
+            case ERROR:
+                msg.append("ERROR").color(ChatColor.RED);
+                break;
+            default:
+                msg.append("UNKNOWN").color(ChatColor.RED);
+        }
+        msg.append("]").color(ChatColor.DARK_GRAY);
+        sender.sendMessage(msg.create());
+
+        sender.sendMessage("");
+
+        sender.sendMessage(new ComponentBuilder("--- Required Tags ---").color(ChatColor.AQUA).create());
+        Map<String, String> tags = instance.getTags();
+        List<String> requiredTags = instance.getRequiredTags();
+        for(String requiredTag : requiredTags) {
+            msg = new ComponentBuilder(requiredTag + ": ").color(ChatColor.DARK_AQUA);
+            if (tags.containsKey(requiredTag)) {
+                msg.append(tags.get(requiredTag)).color(ChatColor.GREEN);
+            } else {
+                msg.append("MISSING!").color(ChatColor.RED);
+            }
+            sender.sendMessage(msg.create());
+        }
+
+        sender.sendMessage("");
+
+        sender.sendMessage(new ComponentBuilder("--- Tags ---").color(ChatColor.AQUA).create());
+        for(String tag : tags.keySet()) {
+            if (requiredTags.contains(tag)) {
+                continue;
+            }
+
+            sender.sendMessage(new ComponentBuilder(tag + ": ").color(ChatColor.DARK_AQUA)
+                    .append(tags.get(tag)).color(ChatColor.GREEN).create());
+
+        }
 
     }
 

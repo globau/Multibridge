@@ -17,6 +17,7 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -34,7 +35,7 @@ public class Instance implements Listener {
     }
 
     public enum State {
-        STOPPED, WAITING, STARTED
+        STOPPED, WAITING, STARTED, ERROR
     }
 
     // Variables
@@ -91,7 +92,12 @@ public class Instance implements Listener {
         if (getStartMode() == StartMode.SERVER_START) {
             manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
                 System.out.println("[" + name + "] " + "Auto-Starting: Server Start");
-                start();
+                try {
+                    start();
+                } catch (RuntimeException e) {
+                    System.out.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
+                    return;
+                }
             }, getStartDelay(), TimeUnit.SECONDS);
 
         }
@@ -115,11 +121,11 @@ public class Instance implements Listener {
     /**
      * Return Placeholders
      */
-    private Map<String, String> getTags() {
+    public Map<String, String> getTags() {
         return getTags(false);
     }
 
-    private Map<String, String> getTags(boolean refresh) {
+    public Map<String, String> getTags(boolean refresh) {
         if (tags == null || refresh) {
             tags = new HashMap<>();
 
@@ -144,6 +150,10 @@ public class Instance implements Listener {
         tags.put("MB_SERVER_NAME", name);
 
         return tags;
+    }
+
+    public List<String> getRequiredTags() {
+        return templateConfig.getStringList("tags.required");
     }
 
     /**
@@ -185,6 +195,14 @@ public class Instance implements Listener {
     public void start() throws RuntimeException {
         if (isRunning()) {
             return;
+        }
+
+        // Don't start if missing required tags
+        Map<String, String> tags = getTags();
+        for(String requiredTag: getRequiredTags()) {
+            if (!tags.containsKey(requiredTag)) {
+                throw new RuntimeException("Missing Required Tag: " + requiredTag);
+            }
         }
 
         // Register with Bungee
@@ -473,6 +491,14 @@ public class Instance implements Listener {
         }
 
         if (getStartMode() == StartMode.INSTANCE_JOIN && bungeeRegistered) {
+            // If missing a required tag we are in ERROR state
+            Map<String, String> tags = getTags();
+            for(String requiredTag: getRequiredTags()) {
+                if (!tags.containsKey(requiredTag)) {
+                    return State.ERROR;
+                }
+            }
+
             return State.WAITING;
         }
 
@@ -488,7 +514,11 @@ public class Instance implements Listener {
         if (!isRunning() && getStartMode() == StartMode.SERVER_JOIN) {
             manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
                 System.out.println("[" + name + "] " + "Auto-Starting: Server Join");
-                start();
+                try {
+                    start();
+                } catch (RuntimeException e) {
+                    System.out.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
+                }
             }, getStartDelay(), TimeUnit.SECONDS);
         }
     }
@@ -501,7 +531,12 @@ public class Instance implements Listener {
         if (event.getTarget().getName().equals(name)) {
             if (!isRunning() && getStartMode() == StartMode.INSTANCE_JOIN) {
                 System.out.println("[" + name + "] " + "Auto-Starting: Instance Join");
-                start();
+                try {
+                    start();
+                } catch (RuntimeException e) {
+                    System.out.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
+                    return;
+                }
 
                 // Delay the connection
                 try {
