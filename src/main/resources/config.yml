@@ -1,0 +1,10 @@
+# Where templates are stored
+templatesFolder: templates
+
+# Where instances are stored
+instancesFolder: live/instances
+
+# Start Port for Dynamic Services
+ports:
+  min: 26000
+  max: 26100
