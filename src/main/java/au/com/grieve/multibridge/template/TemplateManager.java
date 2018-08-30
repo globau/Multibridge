@@ -1,4 +1,4 @@
-package au.com.grieve.multibridge.util;
+package au.com.grieve.multibridge.template;
 
 import au.com.grieve.multibridge.MultiBridge;
 import net.md_5.bungee.api.plugin.Plugin;

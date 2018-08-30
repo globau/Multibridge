@@ -1,8 +1,9 @@
 package au.com.grieve.multibridge.commands;
 
 import au.com.grieve.multibridge.MultiBridge;
-import au.com.grieve.multibridge.util.InstanceManager;
-import au.com.grieve.multibridge.util.TemplateManager;
+import au.com.grieve.multibridge.instance.Instance;
+import au.com.grieve.multibridge.instance.InstanceManager;
+import au.com.grieve.multibridge.template.TemplateManager;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.ComponentBuilder;
@@ -16,22 +17,22 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
     final private MultiBridge plugin;
 
     public class Arguments {
-        public List<String> before;
-        public List<String> args;
+        List<String> before;
+        List<String> args;
 
         /**
          * Initialise Arguments
          */
-        public Arguments(String[] args) {
+        Arguments(String[] args) {
             this.args = new ArrayList<>(Arrays.asList(args));
         }
 
-        public Arguments(List<String> before, List<String> args) {
+        Arguments(List<String> before, List<String> args) {
             this.args = args;
             this.before = before;
         }
 
-        public Arguments shift(int num) {
+        Arguments shift(int num) {
             List<String> newBefore = new ArrayList<>();
             if (before != null) {
                 newBefore.addAll(before);
@@ -152,13 +153,13 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
      */
     private void listInstances(CommandSender sender,Arguments arguments) {
         sender.sendMessage(new ComponentBuilder("Multibridge Instances").color(ChatColor.GREEN).create());
-        Map<String, InstanceManager.Instance> instances = plugin.getInstanceManager().getInstances();
+        Map<String, Instance> instances = plugin.getInstanceManager().getInstances();
         if (instances.size() == 0) {
             sender.sendMessage(new ComponentBuilder("No instances found").color(ChatColor.RED).create());
             return;
         }
 
-        for (InstanceManager.Instance instance: instances.values()) {
+        for (Instance instance: instances.values()) {
             ComponentBuilder msg = new ComponentBuilder(" - [").color(ChatColor.DARK_GRAY);
 
             if (instance.isRunning()) {
@@ -183,7 +184,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
     private void createInstance(CommandSender sender, Arguments arguments) {
         // Help
         if (arguments.args.size() < 2) {
-            sender.sendMessage(new ComponentBuilder("/" + String.join(" ", arguments.before) + " ").color(ChatColor.RED).append("<template_name> <instance_name>").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb " + String.join(" ", arguments.before) + " ").color(ChatColor.RED).append("<template_name> <instance_name>").color(ChatColor.YELLOW).create());
             return;
         }
 
@@ -192,21 +193,18 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         final String instanceName = arguments.args.get(1);
 
         // Schedule the task
-        plugin.getProxy().getScheduler().runAsync(plugin, new Runnable() {
-            @Override
-            public void run() {
-                // Create a new Instance
-                InstanceManager.Instance instance = plugin.getInstanceManager().create(templateName, instanceName);
+        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+            // Create a new Instance
+            Instance instance = plugin.getInstanceManager().create(templateName, instanceName);
 
-                // @TODO: Make use of exceptions rather than returning null
-                if (instance == null) {
-                    sender.sendMessage(new ComponentBuilder("Unable to create new Instance").color(ChatColor.RED).create());
-                    return;
-                }
-
-                // Success
-                sender.sendMessage(new ComponentBuilder("New Instance Created: ").color(ChatColor.GREEN).append(instanceName).color(ChatColor.YELLOW).create());
+            // @TODO: Make use of exceptions rather than returning null
+            if (instance == null) {
+                sender.sendMessage(new ComponentBuilder("Unable to create new Instance").color(ChatColor.RED).create());
+                return;
             }
+
+            // Success
+            sender.sendMessage(new ComponentBuilder("New Instance Created: ").color(ChatColor.GREEN).append(instanceName).color(ChatColor.YELLOW).create());
         });
     }
 
@@ -217,7 +215,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
     private void removeInstance(CommandSender sender, Arguments arguments) {
         // Help
         if (arguments.args.size() < 1) {
-            sender.sendMessage(new ComponentBuilder("/" + String.join(" ", arguments.before) + " ").color(ChatColor.RED).append("<instance_name>").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb " + String.join(" ", arguments.before) + " ").color(ChatColor.RED).append("<instance_name>").color(ChatColor.YELLOW).create());
             return;
         }
 
@@ -225,32 +223,29 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         final String instanceName = arguments.args.get(0);
 
         // Schedule the task
-        plugin.getProxy().getScheduler().runAsync(plugin, new Runnable() {
-            @Override
-            public void run() {
-                InstanceManager.Instance instance = plugin.getInstanceManager().getInstance(instanceName);
+        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+            Instance instance = plugin.getInstanceManager().getInstance(instanceName);
 
-                if (instance == null) {
-                    sender.sendMessage(new ComponentBuilder("Instance does not exist").color(ChatColor.RED).create());
-                    return;
-                }
-
-                if (instance.isRunning()) {
-                    sender.sendMessage(new ComponentBuilder("Instance is currently running").color(ChatColor.RED).create());
-                    return;
-                }
-
-                // Remove it
-                try {
-                    plugin.getInstanceManager().remove(instance);
-                } catch (IOException e) {
-                    sender.sendMessage(new ComponentBuilder("Unable to remove Instance: " + e.getMessage()).color(ChatColor.RED).create());
-                    return;
-                }
-
-                // Success
-                sender.sendMessage(new ComponentBuilder("Instance Removed").color(ChatColor.GREEN).create());
+            if (instance == null) {
+                sender.sendMessage(new ComponentBuilder("Instance does not exist").color(ChatColor.RED).create());
+                return;
             }
+
+            if (instance.isRunning()) {
+                sender.sendMessage(new ComponentBuilder("Instance is currently running").color(ChatColor.RED).create());
+                return;
+            }
+
+            // Remove it
+            try {
+                plugin.getInstanceManager().remove(instance);
+            } catch (IOException e) {
+                sender.sendMessage(new ComponentBuilder("Unable to remove Instance: " + e.getMessage()).color(ChatColor.RED).create());
+                return;
+            }
+
+            // Success
+            sender.sendMessage(new ComponentBuilder("Instance Removed").color(ChatColor.GREEN).create());
         });
     }
 
@@ -261,13 +256,13 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
     private void startInstance(CommandSender sender, Arguments arguments) {
         // Help
         if (arguments.args.size() < 1) {
-            sender.sendMessage(new ComponentBuilder("/" + String.join(" ", arguments.before) + " ").color(ChatColor.RED).append("<instance_name>").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb " + String.join(" ", arguments.before) + " ").color(ChatColor.RED).append("<instance_name>").color(ChatColor.YELLOW).create());
             return;
         }
 
         // Arguments
         final String instanceName = arguments.args.get(0);
-        InstanceManager.Instance instance = plugin.getInstanceManager().getInstance(instanceName);
+        Instance instance = plugin.getInstanceManager().getInstance(instanceName);
 
         if (instance == null) {
             sender.sendMessage(new ComponentBuilder("Cannot find Instance").color(ChatColor.RED).create());
@@ -280,15 +275,12 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         }
 
         // Schedule the task
-        plugin.getProxy().getScheduler().runAsync(plugin, new Runnable() {
-            @Override
-            public void run() {
-                // Start Instance
-                instance.start();
+        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+            // Start Instance
+            instance.start();
 
-                // Success
-                sender.sendMessage(new ComponentBuilder("Instance Starting").color(ChatColor.GREEN).create());
-            }
+            // Success
+            sender.sendMessage(new ComponentBuilder("Instance Starting").color(ChatColor.GREEN).create());
         });
 
     }
@@ -300,13 +292,13 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
     private void stopInstance(CommandSender sender, Arguments arguments) {
         // Help
         if (arguments.args.size() < 1) {
-            sender.sendMessage(new ComponentBuilder("/" + String.join(" ", arguments.before) + " ").color(ChatColor.RED).append("<instance_name>").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb " + String.join(" ", arguments.before) + " ").color(ChatColor.RED).append("<instance_name>").color(ChatColor.YELLOW).create());
             return;
         }
 
         // Arguments
         final String instanceName = arguments.args.get(0);
-        InstanceManager.Instance instance = plugin.getInstanceManager().getInstance(instanceName);
+        Instance instance = plugin.getInstanceManager().getInstance(instanceName);
 
         if (instance == null) {
             sender.sendMessage(new ComponentBuilder("Cannot find Instance").color(ChatColor.RED).create());
@@ -319,15 +311,12 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         }
 
         // Schedule the task
-        plugin.getProxy().getScheduler().runAsync(plugin, new Runnable() {
-            @Override
-            public void run() {
-                // Start Instance
-                instance.stop();
+        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+            // Start Instance
+            instance.stop();
 
-                // Success
-                sender.sendMessage(new ComponentBuilder("Instance Stopping").color(ChatColor.GREEN).create());
-            }
+            // Success
+            sender.sendMessage(new ComponentBuilder("Instance Stopping").color(ChatColor.GREEN).create());
         });
 
     }
