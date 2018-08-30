@@ -33,6 +33,10 @@ public class Instance implements Listener {
         MANUAL, SERVER_EMPTY, INSTANCE_EMPTY
     }
 
+    public enum State {
+        STOPPED, WAITING, STARTED
+    }
+
     // Variables
     private InstanceManager manager;
     private Configuration instanceConfig;
@@ -42,8 +46,8 @@ public class Instance implements Listener {
     private Integer port;
     private boolean bungeeRegistered = false;
 
-    // Placeholders
-    private Map<String,String> placeHolders;
+    // Tags
+    private Map<String,String> tags;
 
     // Async IO
     private Process process;
@@ -103,36 +107,43 @@ public class Instance implements Listener {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // Clear tags cache
+        tags = null;
     }
 
     /**
      * Return Placeholders
      */
-    private Map<String, String> getPlaceHolders() {
-        if (placeHolders == null) {
-            placeHolders = new HashMap<>();
+    private Map<String, String> getTags() {
+        return getTags(false);
+    }
+
+    private Map<String, String> getTags(boolean refresh) {
+        if (tags == null || refresh) {
+            tags = new HashMap<>();
 
             // Add Defaults
-            if (templateConfig.contains("placeHolders.defaults")) {
-                for (String k : templateConfig.getSection("placeHolders.defaults").getKeys()) {
-                    placeHolders.put(k.toUpperCase(), templateConfig.getSection("placeHolders.defaults").getString(k));
+            if (templateConfig.contains("tags.defaults")) {
+                for (String k : templateConfig.getSection("tags.defaults").getKeys()) {
+                    tags.put(k.toUpperCase(), templateConfig.getSection("tags.defaults").getString(k));
                 }
             }
 
             // Add Instance Settings
-            if (instanceConfig.contains("placeHolders")) {
-                for (String k : instanceConfig.getSection("placeHolders").getKeys()) {
-                    placeHolders.put(k.toUpperCase(), instanceConfig.getSection("placeHolders").getString(k));
+            if (instanceConfig.contains("tags")) {
+                for (String k : instanceConfig.getSection("tags").getKeys()) {
+                    tags.put(k.toUpperCase(), instanceConfig.getSection("tags").getString(k));
                 }
             }
         }
 
         // Refresh Builtins
-        placeHolders.put("MB_SERVER_IP", "127.0.0.1");
-        placeHolders.put("MB_SERVER_PORT", port == null?"unknown":port.toString());
-        placeHolders.put("MB_SERVER_NAME", name);
+        tags.put("MB_SERVER_IP", "127.0.0.1");
+        tags.put("MB_SERVER_PORT", port == null?"unknown":port.toString());
+        tags.put("MB_SERVER_NAME", name);
 
-        return placeHolders;
+        return tags;
     }
 
     /**
@@ -180,7 +191,7 @@ public class Instance implements Listener {
         registerBungee();
 
         // Build Template Files
-        SimpleTemplate st = new SimpleTemplate(getPlaceHolders());
+        SimpleTemplate st = new SimpleTemplate(getTags());
         updateTemplates(st);
 
         // Execute
@@ -253,7 +264,7 @@ public class Instance implements Listener {
      */
     private void updateTemplates(SimpleTemplate st) {
         // Statics for first run
-        if (!instanceConfig.getBoolean("hadFirstRun")) {
+        if (!getTagBoolean("MB_FIRST_RUN")) {
             for(String fileName:  templateConfig.getStringList("templates.static")) {
                 try {
                     st.replace(instanceFolder.resolve(fileName + ".template"), instanceFolder.resolve(fileName));
@@ -263,8 +274,7 @@ public class Instance implements Listener {
             }
 
             // Update instanceConfig
-            instanceConfig.set("hadFirstRun", true);
-            saveConfig();
+            setTag("MB_FIRST_RUN", true);
         }
 
         // Update Dynamics
@@ -364,38 +374,82 @@ public class Instance implements Listener {
     }
 
     /**
+     * Get Tag
+     */
+    public String getTag(String key) {
+        return getTag(key, null);
+    }
+
+    public String getTag(String key, String def) {
+        return getTags().getOrDefault(key, def);
+    }
+
+    public int getTagInt(String key, int def) {
+        try {
+            return Integer.parseInt(getTag(key, String.valueOf(def)));
+        } catch (NumberFormatException e) {
+            return def;
+        }
+    }
+
+    public int getTagInt(String key) {
+        return getTagInt(key, 0);
+    }
+
+    public boolean getTagBoolean(String key) {
+        return getTagBoolean(key, false);
+    }
+
+    public boolean getTagBoolean(String key, boolean def) {
+        return Boolean.parseBoolean(getTag(key, String.valueOf(def)));
+    }
+
+    public void setTag(String key, String value) {
+        instanceConfig.set("tags." + key, value);
+        saveConfig();
+    }
+
+    public void setTag(String key, int value) {
+        instanceConfig.set("tags." + key, value);
+        saveConfig();
+    }
+
+    public void setTag(String key, boolean value) {
+        instanceConfig.set("tags." + key, value);
+        saveConfig();
+    }
+
+    /**
      * Return Startup Type
      */
     public StartMode getStartMode() {
-        return StartMode.valueOf(instanceConfig.getString("auto.start.type", "MANUAL").toUpperCase());
+        return StartMode.valueOf(getTag("MB_START_MODE", "MANUAL"));
     }
 
     public void setStartMode(StartMode mode) {
-        instanceConfig.set("auto.start.type", mode.toString());
-        saveConfig();
+        setTag("MB_START_MODE", mode.toString());
     }
 
     /**
      * Return Startup Delay
      */
     public int getStartDelay() {
-        return instanceConfig.getInt("auto.start.delay", 0);
+        return getTagInt("MB_START_DELAY", 0);
     }
 
     public void setStartDelay(int delay) {
-        instanceConfig.set("auto.start.delay", delay);
+        setTag("MB_START_DELAY", delay);
     }
 
     /**
      * Get Stop Type
      */
     public StopMode getStopMode() {
-        return StopMode.valueOf(instanceConfig.getString("auto.stop.type", "MANUAL").toUpperCase());
+        return StopMode.valueOf(getTag("MB_STOP_MODE", "MANUAL").toUpperCase());
     }
 
     public void setStopMode(StopMode mode) {
-        instanceConfig.set("auto.stop.type", mode.toString());
-        saveConfig();
+        setTag("MB_STOP_MODE", mode.toString());
     }
 
 
@@ -403,11 +457,26 @@ public class Instance implements Listener {
      * Get Stop Delay
      */
     public int getStopDelay() {
-        return instanceConfig.getInt("auto.stop.delay", 0);
+        return getTagInt("MB_STOP_DELAY", 0);
     }
 
     public void setStopDelay(int delay) {
-        instanceConfig.set("auto.stop.delay", delay);
+        setTag("MB_STOP_DELAY", delay);
+    }
+
+    /**
+     * Get State
+     */
+    public State getState() {
+        if (isRunning()) {
+            return State.STARTED;
+        }
+
+        if (getStartMode() == StartMode.INSTANCE_JOIN && bungeeRegistered) {
+            return State.WAITING;
+        }
+
+        return State.STOPPED;
     }
 
 

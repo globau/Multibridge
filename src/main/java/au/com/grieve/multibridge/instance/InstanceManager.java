@@ -199,7 +199,6 @@ public class InstanceManager implements Listener {
 
         // Create new Instance Config
         Configuration instanceConfig = new Configuration();
-        instanceConfig.set("templateName", templateName);
         try {
             ConfigurationProvider.getProvider(YamlConfiguration.class).save(instanceConfig, target.resolve("instance.yml").toFile());
         } catch (IOException e) {
@@ -208,6 +207,7 @@ public class InstanceManager implements Listener {
 
         try {
             Instance instance = new Instance(this, target);
+            instance.setTag("MB_TEMPLATE_NAME", templateName);
             instances.put(instanceName, instance);
             return instance;
         } catch (InstantiationException e) {
