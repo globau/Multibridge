@@ -65,28 +65,17 @@ public class Instance implements Listener {
             throw new InstantiationException("Instance folder does not exist");
         }
 
-        Path instanceConfigPath = instanceFolder.resolve("instance.yml");
-        Path templateConfigPath = instanceFolder.resolve("template.yml");
-
-        // Make sure config file exists
-        if (!Files.exists(instanceConfigPath) || !Files.exists(templateConfigPath)) {
-            throw new InstantiationException("Instance configuration does not exist");
-        }
-
-        try {
-            instanceConfig = ConfigurationProvider.getProvider(YamlConfiguration.class).load(instanceConfigPath.toFile());
-            templateConfig = ConfigurationProvider.getProvider(YamlConfiguration.class).load(templateConfigPath.toFile());
-        } catch (IOException e) {
-            throw new InstantiationError("Cannot load Instance configuration");
-        }
-
         // Register ourself as a Listener
         manager.getPlugin().getProxy().getPluginManager().registerListener(manager.getPlugin(), this);
 
-        // If our start mode is INSTANCE_JOIN we need to register with Bungee now
-        if (getStartMode() == StartMode.INSTANCE_JOIN) {
-            registerBungee();
+        try {
+            loadConfig();
+        } catch (IOException e) {
+            throw new InstantiationException(e.getMessage());
         }
+
+        // Setup Autos
+        updateAuto();
 
         // Auto-start if needed
         if (getStartMode() == StartMode.SERVER_START) {
@@ -96,10 +85,42 @@ public class Instance implements Listener {
                     start();
                 } catch (RuntimeException e) {
                     System.out.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
-                    return;
                 }
             }, getStartDelay(), TimeUnit.SECONDS);
 
+        }
+    }
+
+    private void loadConfig() throws IOException {
+        Path instanceConfigPath = instanceFolder.resolve("instance.yml");
+        Path templateConfigPath = instanceFolder.resolve("template.yml");
+
+        try {
+            templateConfig = ConfigurationProvider.getProvider(YamlConfiguration.class).load(templateConfigPath.toFile());
+        } catch (IOException e) {
+            throw new IOException("Cannot load Instance template.yml");
+        }
+
+        try {
+            instanceConfig = ConfigurationProvider.getProvider(YamlConfiguration.class).load(instanceConfigPath.toFile());
+        } catch (IOException e) {
+            instanceConfig = new Configuration();
+        }
+    }
+
+    /**
+     * Update Autos
+     */
+    private void updateAuto() {
+        // Do we need to unregister from bungee?
+        if (bungeeRegistered && !isRunning()) {
+            if ((getStartMode() != StartMode.INSTANCE_JOIN) || !hasRequiredTags()) {
+                unregisterBungee();
+            }
+        } else if (!bungeeRegistered) {
+            if (getStartMode() == StartMode.INSTANCE_JOIN && hasRequiredTags()) {
+                registerBungee();
+            }
         }
     }
 
@@ -122,18 +143,23 @@ public class Instance implements Listener {
      * Return Placeholders
      */
     public Map<String, String> getTags() {
-        return getTags(false);
+        return getTags(true);
     }
 
     public Map<String, String> getTags(boolean refresh) {
         if (tags == null || refresh) {
             tags = new HashMap<>();
 
-            // Add Defaults
+            // Add Defaults from Template
             if (templateConfig.contains("tags.defaults")) {
                 for (String k : templateConfig.getSection("tags.defaults").getKeys()) {
                     tags.put(k.toUpperCase(), templateConfig.getSection("tags.defaults").getString(k));
                 }
+            }
+
+            // Add Globals. Overrides above
+            for (Map.Entry<String, String> e : manager.getPlugin().getGlobalManager().getTags().entrySet()) {
+                tags.put(e.getKey(), e.getValue());
             }
 
             // Add Instance Settings
@@ -256,6 +282,8 @@ public class Instance implements Listener {
             if (getStartMode() != StartMode.INSTANCE_JOIN) {
                 unregisterBungee();
             }
+
+            updateAuto();
         });
 
         // If we have startup commands lets schedule that
@@ -425,23 +453,36 @@ public class Instance implements Listener {
     public void setTag(String key, String value) {
         instanceConfig.set("tags." + key, value);
         saveConfig();
+        updateAuto();
     }
 
     public void setTag(String key, int value) {
         instanceConfig.set("tags." + key, value);
         saveConfig();
+        updateAuto();
     }
 
     public void setTag(String key, boolean value) {
         instanceConfig.set("tags." + key, value);
         saveConfig();
+        updateAuto();
+    }
+
+    public void clearTag(String key) {
+        instanceConfig.set("tags." + key, null);
+        saveConfig();
+        updateAuto();
     }
 
     /**
      * Return Startup Type
      */
     public StartMode getStartMode() {
-        return StartMode.valueOf(getTag("MB_START_MODE", "MANUAL"));
+        try {
+            return StartMode.valueOf(getTag("MB_START_MODE", "MANUAL"));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public void setStartMode(StartMode mode) {
@@ -482,6 +523,16 @@ public class Instance implements Listener {
         setTag("MB_STOP_DELAY", delay);
     }
 
+    public boolean hasRequiredTags() {
+        Map<String, String> tags = getTags();
+        for(String requiredTag: getRequiredTags()) {
+            if (!tags.containsKey(requiredTag)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Get State
      */
@@ -490,21 +541,25 @@ public class Instance implements Listener {
             return State.STARTED;
         }
 
-        if (getStartMode() == StartMode.INSTANCE_JOIN && bungeeRegistered) {
-            // If missing a required tag we are in ERROR state
-            Map<String, String> tags = getTags();
-            for(String requiredTag: getRequiredTags()) {
-                if (!tags.containsKey(requiredTag)) {
-                    return State.ERROR;
-                }
-            }
+        StartMode startMode = getStartMode();
 
+        if (startMode == StartMode.INSTANCE_JOIN) {
+            if (!bungeeRegistered) {
+                return State.ERROR;
+            }
             return State.WAITING;
         }
 
         return State.STOPPED;
     }
 
+    /**
+     * Reload Config
+     */
+    public void reloadConfig() throws IOException {
+        loadConfig();
+        updateAuto();
+    }
 
     /**
      * Check if we need to start before a player logs into the server

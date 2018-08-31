@@ -1,6 +1,7 @@
 package au.com.grieve.multibridge;
 
 import au.com.grieve.multibridge.commands.MultiBridgeCommand;
+import au.com.grieve.multibridge.global.GlobalManager;
 import au.com.grieve.multibridge.instance.InstanceManager;
 import au.com.grieve.multibridge.template.TemplateManager;
 import net.md_5.bungee.api.plugin.Plugin;
@@ -15,6 +16,7 @@ public class MultiBridge extends Plugin {
     private Configuration config;
     private TemplateManager templateManager;
     private InstanceManager instanceManager;
+    private GlobalManager globalManager;
 
     @Override
     public void onEnable() {
@@ -28,6 +30,7 @@ public class MultiBridge extends Plugin {
         // Load Managers
         templateManager = new TemplateManager(this);
         instanceManager = new InstanceManager(this);
+        globalManager = new GlobalManager(this);
 
         // Register Commands
         getProxy().getPluginManager().registerCommand(this, new MultiBridgeCommand(this));
@@ -77,6 +80,13 @@ public class MultiBridge extends Plugin {
      */
     public InstanceManager getInstanceManager() {
         return instanceManager;
+    }
+
+    /**
+     * Return the Global Manager
+     */
+    public GlobalManager getGlobalManager() {
+        return globalManager;
     }
 
     /**
