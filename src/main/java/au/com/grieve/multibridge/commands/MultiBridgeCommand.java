@@ -280,17 +280,15 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         if (arguments.args.size() < 2 || arguments.args.get(0).equalsIgnoreCase("help")) {
             sender.sendMessage(new ComponentBuilder("--- [ Create Instance Help ] ---").color(ChatColor.AQUA).create());
             sender.sendMessage(new ComponentBuilder("Create a new Instance from a Template").color(ChatColor.DARK_AQUA).create());
-            sender.sendMessage(new ComponentBuilder("/mb instance create").color(ChatColor.RED).append(" <instance_name> <template_name> [<tag>:<value> ...]").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance create").color(ChatColor.RED).append(" <instance_name> <template_name>").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
-            sender.sendMessage(new ComponentBuilder("/mb instance create").color(ChatColor.RED).append(" World1 vanilla.1.12 EULA:true").color(ChatColor.YELLOW).create());
-            sender.sendMessage(new ComponentBuilder("/mb instance create").color(ChatColor.RED).append(" World2 papermc.1.13 MC_GAMEMODE:0 EULA:true").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance create").color(ChatColor.RED).append(" World1 vanilla.1.12").color(ChatColor.YELLOW).create());
             return;
         }
 
         // Arguments
         final String instanceName = arguments.args.get(0);
         final String templateName = arguments.args.get(1);
-
 
         // Async It
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
@@ -547,7 +545,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         String tag = arguments.args.get(1);
         if (arguments.args.size() > 2) {
-            instance.setTag(tag, arguments.args.get(2));
+            instance.setTag(tag, String.join(" ", arguments.args.subList(2,arguments.args.size())));
             sender.sendMessage(new ComponentBuilder("Set ").color(ChatColor.GREEN)
                     .append(tag.toUpperCase()).color(ChatColor.YELLOW)
                     .append(" = ").color(ChatColor.GREEN)
@@ -577,7 +575,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         // Arguments
         String tag = arguments.args.get(0);
         if (arguments.args.size() > 1) {
-            plugin.getGlobalManager().setTag(tag, arguments.args.get(1));
+            plugin.getGlobalManager().setTag(tag, String.join(" ", arguments.args.subList(2,arguments.args.size())));
             sender.sendMessage(new ComponentBuilder("Set ").color(ChatColor.GREEN)
                     .append(tag.toUpperCase()).color(ChatColor.YELLOW)
                     .append(" = ").color(ChatColor.GREEN)
