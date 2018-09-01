@@ -125,6 +125,8 @@ public class InstanceManager implements Listener {
                     .forEach(File::delete);
         }
 
+        instance.unregisterBungee();
+
         instances.remove(instance.getName());
         plugin.getProxy().getPluginManager().unregisterListener(instance);
     }

@@ -3,16 +3,12 @@ package au.com.grieve.multibridge.commands;
 import au.com.grieve.multibridge.MultiBridge;
 import au.com.grieve.multibridge.instance.Instance;
 import au.com.grieve.multibridge.template.Template;
-import au.com.grieve.multibridge.template.TemplateManager;
-import net.md_5.bungee.api.Callback;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.TabExecutor;
-import net.md_5.bungee.protocol.packet.Chat;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
@@ -90,13 +86,39 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
     private void subcommandGlobal(CommandSender sender, Arguments arguments) {
         if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
             sender.sendMessage(new ComponentBuilder("--- [ Global Help ] ---").color(ChatColor.AQUA).create());
-            sender.sendMessage(new ComponentBuilder("/mb global").color(ChatColor.RED).append(" set").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb global").color(ChatColor.RED).append(" tag").color(ChatColor.YELLOW).create());
+            return;
+        }
+
+        switch(arguments.args.get(0).toLowerCase()) {
+            case "tag":
+                subcommandGlobalTag(sender, arguments.shift(1));
+                return;
+            default:
+                sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
+                break;
+        }
+
+    }
+
+    private void subcommandGlobalTag(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Global Tag Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb global tag").color(ChatColor.RED).append(" set").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb global tag").color(ChatColor.RED).append(" get").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb global tag").color(ChatColor.RED).append(" list").color(ChatColor.YELLOW).create());
             return;
         }
 
         switch(arguments.args.get(0).toLowerCase()) {
             case "set":
-                setGlobal(sender, arguments.shift(1));
+                globalTagSet(sender, arguments.shift(1));
+                return;
+            case "get":
+                globalTagGet(sender, arguments.shift(1));
+                return;
+            case "list":
+                globalTagList(sender, arguments.shift(1));
                 return;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
@@ -115,10 +137,10 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         switch(arguments.args.get(0).toLowerCase()) {
             case "list":
-                listTemplates(sender, arguments.shift(1));
+                templateList(sender, arguments.shift(1));
                 return;
             case "download":
-                downloadTemplate(sender, arguments.shift(1));
+                templateDownload(sender, arguments.shift(1));
                 break;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
@@ -136,36 +158,62 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" remove").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" list").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" info").color(ChatColor.YELLOW).create());
-            sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" set").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" tag").color(ChatColor.YELLOW).create());
 //            sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" send").color(ChatColor.YELLOW).create());
             return;
         }
 
         switch(arguments.args.get(0).toLowerCase()) {
             case "create":
-                createInstance(sender, arguments.shift(1));
+                instanceCreate(sender, arguments.shift(1));
                 break;
             case "start":
-                startInstance(sender, arguments.shift(1));
+                instanceStart(sender, arguments.shift(1));
                 break;
             case "stop":
-                stopInstance(sender, arguments.shift(1));
+                instanceStop(sender, arguments.shift(1));
                 break;
             case "remove":
-                removeInstance(sender, arguments.shift(1));
+                instanceRemove(sender, arguments.shift(1));
                 break;
             case "list":
-                listInstances(sender, arguments.shift(1));
+                instanceList(sender, arguments.shift(1));
                 break;
             case "info":
-                infoInstance(sender, arguments.shift(1));
+                instanceInfo(sender, arguments.shift(1));
                 break;
-            case "set":
-                setInstance(sender, arguments.shift(1));
+            case "tag":
+                subcommandInstanceTag(sender, arguments.shift(1));
                 break;
 //            case "send":
 //                sendInstance(sender, arguments.shift(1));
 //                break;
+            default:
+                sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
+                break;
+        }
+
+    }
+
+    private void subcommandInstanceTag(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Instance Tag Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance tag").color(ChatColor.RED).append(" set").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance tag").color(ChatColor.RED).append(" get").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance tag").color(ChatColor.RED).append(" list").color(ChatColor.YELLOW).create());
+            return;
+        }
+
+        switch(arguments.args.get(0).toLowerCase()) {
+            case "set":
+                instanceTagSet(sender, arguments.shift(1));
+                return;
+            case "get":
+                instanceTagGet(sender, arguments.shift(1));
+                return;
+            case "list":
+                instanceTagList(sender, arguments.shift(1));
+                return;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
                 break;
@@ -183,7 +231,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
      * List all Templates available
      *
      */
-    private void listTemplates(CommandSender sender, Arguments arguments) {
+    private void templateList(CommandSender sender, Arguments arguments) {
         if (arguments.args.size() > 0 && arguments.args.get(0).equalsIgnoreCase("help")) {
             sender.sendMessage(new ComponentBuilder("--- [ List Templates Help ] ---").color(ChatColor.AQUA).create());
             sender.sendMessage(new ComponentBuilder("List installed templates").color(ChatColor.DARK_AQUA).create());
@@ -206,21 +254,17 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         sender.sendMessage(new ComponentBuilder("--- Templates ---").color(ChatColor.AQUA).create());
 
-        Map<String, Template> templates = plugin.getTemplateManager().getTemplates();
-        if (templates.size() <= (page-1)*20) {
-            sender.sendMessage(new ComponentBuilder("No templates found").color(ChatColor.GREEN).create());
-            return;
-        }
-
-        templates.keySet().stream()
-                .skip(20*(page-1))
+        plugin.getTemplateManager().getTemplates().keySet().stream()
+                .sorted()
+                .skip(10*(page-1))
+                .limit(10)
                 .forEach(s -> sender.sendMessage(new ComponentBuilder(s).color(ChatColor.DARK_AQUA).create()));
     }
 
     /**
      * Template Download
      */
-    private void downloadTemplate(CommandSender sender, Arguments arguments) {
+    private void templateDownload(CommandSender sender, Arguments arguments) {
         if (arguments.args.size() < 2 || arguments.args.get(0).equalsIgnoreCase("help")) {
             sender.sendMessage(new ComponentBuilder("--- [ Download Template Help ] ---").color(ChatColor.AQUA).create());
             sender.sendMessage(new ComponentBuilder("Download a template zip file").color(ChatColor.DARK_AQUA).create());
@@ -266,7 +310,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
      * List all Instances available
      *
      */
-    private void listInstances(CommandSender sender,Arguments arguments) {
+    private void instanceList(CommandSender sender,Arguments arguments) {
         if (arguments.args.size() > 0 && arguments.args.get(0).equalsIgnoreCase("help")) {
             sender.sendMessage(new ComponentBuilder("--- [ List Instances Help ] ---").color(ChatColor.AQUA).create());
             sender.sendMessage(new ComponentBuilder("List available instances").color(ChatColor.DARK_AQUA).create());
@@ -289,13 +333,14 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         sender.sendMessage(new ComponentBuilder("--- Instances ---").color(ChatColor.AQUA).create());
         Map<String, Instance> instances = plugin.getInstanceManager().getInstances();
-        if (instances.size() <= (page-1)*20) {
+        if (instances.size() <= (page-1)*10) {
             sender.sendMessage(new ComponentBuilder("No instances found").color(ChatColor.RED).create());
             return;
         }
 
         instances.values().stream()
-                .skip(20*(page-1))
+                .skip(10*(page-1))
+                .limit(10)
                 .forEach(s -> {
                             ComponentBuilder msg = new ComponentBuilder(" - [").color(ChatColor.DARK_GRAY);
 
@@ -329,7 +374,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
      * Create a new Server Instance
      *
      */
-    private void createInstance(CommandSender sender, Arguments arguments) {
+    private void instanceCreate(CommandSender sender, Arguments arguments) {
         // Help
         if (arguments.args.size() < 2 || arguments.args.get(0).equalsIgnoreCase("help")) {
             sender.sendMessage(new ComponentBuilder("--- [ Create Instance Help ] ---").color(ChatColor.AQUA).create());
@@ -364,7 +409,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
      * Remove an Instance
      *
      */
-    private void removeInstance(CommandSender sender, Arguments arguments) {
+    private void instanceRemove(CommandSender sender, Arguments arguments) {
         if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
             sender.sendMessage(new ComponentBuilder("--- [ Remove Instance Help ] ---").color(ChatColor.AQUA).create());
             sender.sendMessage(new ComponentBuilder("Remove an existing instance. This will delete the physical files.").color(ChatColor.DARK_AQUA).create());
@@ -408,7 +453,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
      * Start existing Server Instance
      *
      */
-    private void startInstance(CommandSender sender, Arguments arguments) {
+    private void instanceStart(CommandSender sender, Arguments arguments) {
         if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
             sender.sendMessage(new ComponentBuilder("--- [ Start Instance Help ] ---").color(ChatColor.AQUA).create());
             sender.sendMessage(new ComponentBuilder("Manually start an Instance").color(ChatColor.DARK_AQUA).create());
@@ -453,7 +498,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
      * Stop existing Server Instance
      *
      */
-    private void stopInstance(CommandSender sender, Arguments arguments) {
+    private void instanceStop(CommandSender sender, Arguments arguments) {
         if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
             sender.sendMessage(new ComponentBuilder("--- [ Stop Instance Help ] ---").color(ChatColor.AQUA).create());
             sender.sendMessage(new ComponentBuilder("Manually stop an Instance").color(ChatColor.DARK_AQUA).create());
@@ -492,7 +537,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
      * Get Info on an Instance
      *
      */
-    private void infoInstance(CommandSender sender, Arguments arguments) {
+    private void instanceInfo(CommandSender sender, Arguments arguments) {
         if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
             sender.sendMessage(new ComponentBuilder("--- [ Instance Info Help ] ---").color(ChatColor.AQUA).create());
             sender.sendMessage(new ComponentBuilder("Get information about an instance").color(ChatColor.DARK_AQUA).create());
@@ -556,35 +601,35 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                     sender.sendMessage(m.create());
                 });
 
-        sender.sendMessage("");
-
-        sender.sendMessage(new ComponentBuilder("--- Tags ---").color(ChatColor.AQUA).create());
-
-        tags.keySet().stream()
-                .sorted()
-                .forEach( s-> {
-                    if (requiredTags.contains(s)) {
-                        return;
-                    }
-
-                    sender.sendMessage(new ComponentBuilder(s + ": ").color(ChatColor.DARK_AQUA)
-                            .append(tags.get(s)).color(ChatColor.GREEN).create());
-
-                });
+//        sender.sendMessage("");
+//
+//        sender.sendMessage(new ComponentBuilder("--- Tags ---").color(ChatColor.AQUA).create());
+//
+//        tags.keySet().stream()
+//                .sorted()
+//                .forEach( s-> {
+//                    if (requiredTags.contains(s)) {
+//                        return;
+//                    }
+//
+//                    sender.sendMessage(new ComponentBuilder(s + ": ").color(ChatColor.DARK_AQUA)
+//                            .append(tags.get(s)).color(ChatColor.GREEN).create());
+//
+//                });
     }
 
     /**
      * Set Tags on an instance
      *
      */
-    private void setInstance(CommandSender sender, Arguments arguments) {
+    private void instanceTagSet(CommandSender sender, Arguments arguments) {
         if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
-            sender.sendMessage(new ComponentBuilder("--- [ Set Instance Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("--- [ Set Instance Tag Help ] ---").color(ChatColor.AQUA).create());
             sender.sendMessage(new ComponentBuilder("Set a tag on an Instance. Leave value blank to clear.").color(ChatColor.DARK_AQUA).create());
-            sender.sendMessage(new ComponentBuilder("/mb instance set").color(ChatColor.RED).append(" <instance_name> <tag_name> [<value>]").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance tag set").color(ChatColor.RED).append(" <instance_name> <tag_name> [<value>]").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
-            sender.sendMessage(new ComponentBuilder("/mb instance set").color(ChatColor.RED).append(" World1 EULA true").color(ChatColor.YELLOW).create());
-            sender.sendMessage(new ComponentBuilder("/mb instance set").color(ChatColor.RED).append(" World1 EULA").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance tag set").color(ChatColor.RED).append(" World1 EULA true").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance tag set").color(ChatColor.RED).append(" World1 EULA").color(ChatColor.YELLOW).create());
             return;
         }
 
@@ -612,17 +657,101 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
     }
 
     /**
+     * Get Tag on an instance
+     *
+     */
+    private void instanceTagGet(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() < 2 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Get Instance Tag Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("Get a tag on an Instance.").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance tag get").color(ChatColor.RED).append(" <instance_name>").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance tag get").color(ChatColor.RED).append(" World1 EULA").color(ChatColor.YELLOW).create());
+            return;
+        }
+
+        // Arguments
+        final String instanceName = arguments.args.get(0);
+        Instance instance = plugin.getInstanceManager().getInstance(instanceName);
+
+        if (instance == null) {
+            sender.sendMessage(new ComponentBuilder("Cannot find Instance").color(ChatColor.RED).create());
+            return;
+        }
+
+        String tag = arguments.args.get(1);
+
+        sender.sendMessage(new ComponentBuilder("Instance: ").color(ChatColor.GREEN)
+                .append(tag.toUpperCase()).color(ChatColor.YELLOW)
+                .append(" = ").color(ChatColor.GREEN)
+                .append(instance.getLocalTag(tag)).color(ChatColor.YELLOW).create());
+    }
+
+    /**
+     * List Instance Tags
+     *
+     */
+    private void instanceTagList(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() < 1 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ List Instance Tags Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("List instance tags").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance tag list").color(ChatColor.RED).append(" <instance_name> [<page>]").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance tag list").color(ChatColor.RED).append(" World1").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance tag list").color(ChatColor.RED).append(" World1 2").color(ChatColor.YELLOW).create());
+            return;
+        }
+
+        final String instanceName = arguments.args.get(0);
+        Instance instance = plugin.getInstanceManager().getInstance(instanceName);
+
+        if (instance == null) {
+            sender.sendMessage(new ComponentBuilder("Cannot find Instance").color(ChatColor.RED).create());
+            return;
+        }
+
+        int page = 1;
+        if (arguments.args.size() > 1) {
+            try {
+                page = Math.max(1,Integer.parseInt(arguments.args.get(1)));
+            } catch (NumberFormatException e) {
+                sender.sendMessage(new ComponentBuilder("Invalid Page Number").color(ChatColor.RED).create());
+                return;
+            }
+        }
+
+        sender.sendMessage(new ComponentBuilder("--- Instance Tags ---").color(ChatColor.AQUA).create());
+
+        Set<String> localTags = instance.getLocalTags().keySet();
+
+        instance.getTags().entrySet().stream()
+                .sorted(Comparator.comparing(Map.Entry::getKey))
+                .skip(10*(page-1))
+                .limit(10)
+                .forEach( s-> {
+                    ComponentBuilder msg = new ComponentBuilder(s.getKey() + ": ").color(ChatColor.DARK_AQUA)
+                            .append(s.getValue()).color(ChatColor.GREEN);
+
+                    if (!localTags.contains(s.getKey())) {
+                        msg.append(" (inherited)").color(ChatColor.LIGHT_PURPLE);
+                    }
+
+                    sender.sendMessage(msg.create());
+                });
+    }
+
+    /**
      * Set Global Tags
      *
      */
-    private void setGlobal(CommandSender sender, Arguments arguments) {
+    private void globalTagSet(CommandSender sender, Arguments arguments) {
         if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
-            sender.sendMessage(new ComponentBuilder("--- [ Set Global Help ] ---").color(ChatColor.AQUA).create());
-            sender.sendMessage(new ComponentBuilder("Set a tag gloally. Leave value blank to clear.").color(ChatColor.DARK_AQUA).create());
-            sender.sendMessage(new ComponentBuilder("/mb global set").color(ChatColor.RED).append(" <tag_name> [<value>]").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("--- [ Set Global Tag Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("Set a tag globally. Leave value blank to clear.").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb global tag set").color(ChatColor.RED).append(" <tag_name> [<value>]").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
-            sender.sendMessage(new ComponentBuilder("/mb global set").color(ChatColor.RED).append(" EULA true").color(ChatColor.YELLOW).create());
-            sender.sendMessage(new ComponentBuilder("/mb global set").color(ChatColor.RED).append(" EULA").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb global tag set").color(ChatColor.RED).append(" EULA true").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb global tag set").color(ChatColor.RED).append(" EULA").color(ChatColor.YELLOW).create());
             return;
         }
 
@@ -639,6 +768,66 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             sender.sendMessage(new ComponentBuilder("Cleared ").color(ChatColor.GREEN)
                     .append(tag.toUpperCase()).color(ChatColor.YELLOW).create());
         }
+    }
+
+    /**
+     * Get Global Tags
+     *
+     */
+    private void globalTagGet(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Get Global Tag Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("Get a global tag").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb global tag get").color(ChatColor.RED).append(" <tag_name>").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("/mb global tag get").color(ChatColor.RED).append(" EULA").color(ChatColor.YELLOW).create());
+            return;
+        }
+
+        // Arguments
+        String tag = arguments.args.get(0);
+        sender.sendMessage(new ComponentBuilder("Global: ").color(ChatColor.GREEN)
+                .append(tag.toUpperCase()).color(ChatColor.YELLOW)
+                .append(" = ").color(ChatColor.GREEN)
+                .append(plugin.getGlobalManager().getTag(tag)).color(ChatColor.YELLOW).create());
+    }
+
+    /**
+     * List Global Tags
+     *
+     */
+    private void globalTagList(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() > 0 && arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ List Global Tags Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("List global tags").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb global tag list").color(ChatColor.RED).append(" [<page>]").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("/mb global tag list").color(ChatColor.RED).create());
+            sender.sendMessage(new ComponentBuilder("/mb global tag list").color(ChatColor.RED).append(" 2").color(ChatColor.YELLOW).create());
+            return;
+        }
+
+        int page = 1;
+        if (arguments.args.size() > 0) {
+            try {
+                page = Math.max(1,Integer.parseInt(arguments.args.get(0)));
+            } catch (NumberFormatException e) {
+                sender.sendMessage(new ComponentBuilder("Invalid Page Number").color(ChatColor.RED).create());
+                return;
+            }
+        }
+
+        sender.sendMessage(new ComponentBuilder("--- Global Tags ---").color(ChatColor.AQUA).create());
+
+        plugin.getGlobalManager().getTags().entrySet().stream()
+                .sorted(Comparator.comparing(Map.Entry::getKey))
+                .skip((page-1)*10)
+                .limit(10)
+                .forEach( s-> {
+                    sender.sendMessage(new ComponentBuilder(s.getKey() + ": ").color(ChatColor.DARK_AQUA)
+                            .append(s.getValue()).color(ChatColor.GREEN).create());
+
+                });
     }
 
 //    /**
