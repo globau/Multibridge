@@ -28,9 +28,10 @@ public class MultiBridge extends Plugin {
         }
 
         // Load Managers
+        globalManager = new GlobalManager(this);
         templateManager = new TemplateManager(this);
         instanceManager = new InstanceManager(this);
-        globalManager = new GlobalManager(this);
+
 
         // Register Commands
         getProxy().getPluginManager().registerCommand(this, new MultiBridgeCommand(this));

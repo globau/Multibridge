@@ -12,6 +12,7 @@ import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.TabExecutor;
 import net.md_5.bungee.protocol.packet.Chat;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
@@ -232,6 +233,11 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         String name = arguments.args.get(0);
         String url = arguments.args.get(1);
 
+        sender.sendMessage(new ComponentBuilder("Downloading Template: ").color(ChatColor.GREEN)
+                .append(url).color(ChatColor.YELLOW)
+                .append(" -> ").color(ChatColor.DARK_AQUA)
+                .append(name).color(ChatColor.YELLOW).create());
+
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
             Template template;
             try {
@@ -242,15 +248,18 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 return;
             }
 
+            if (template == null) {
+                sender.sendMessage(new ComponentBuilder("Invalid Template: ").color(ChatColor.RED)
+                        .append(name).color(ChatColor.YELLOW).create());
+                return;
+            }
+
             // Success
             sender.sendMessage(new ComponentBuilder("Downloaded Template: ").color(ChatColor.GREEN)
                     .append(name).color(ChatColor.YELLOW).create());
         });
 
-        sender.sendMessage(new ComponentBuilder("Downloading Template: ").color(ChatColor.GREEN)
-                .append(url).color(ChatColor.YELLOW)
-                .append(" -> ").color(ChatColor.DARK_AQUA)
-                .append(name).color(ChatColor.YELLOW).create());
+
     }
 
     /**
@@ -620,7 +629,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         // Arguments
         String tag = arguments.args.get(0);
         if (arguments.args.size() > 1) {
-            plugin.getGlobalManager().setTag(tag, String.join(" ", arguments.args.subList(2,arguments.args.size())));
+            plugin.getGlobalManager().setTag(tag, String.join(" ", arguments.args.subList(1,arguments.args.size())));
             sender.sendMessage(new ComponentBuilder("Set ").color(ChatColor.GREEN)
                     .append(tag.toUpperCase()).color(ChatColor.YELLOW)
                     .append(" = ").color(ChatColor.GREEN)

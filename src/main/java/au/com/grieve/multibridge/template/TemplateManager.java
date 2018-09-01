@@ -7,15 +7,21 @@ import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 public class TemplateManager {
     private final MultiBridge plugin;
@@ -75,9 +81,40 @@ public class TemplateManager {
     }
 
     /**
-     * Download a Template from a URL
+     * Download a zipped Template from a URL to a new template folder
      */
     public Template downloadTemplate(String name, URL url) throws IOException {
-        throw new IOException("Not implemented yet");
+        Path target = getTemplateFolder().resolve(name);
+        if (Files.exists(target)) {
+            throw new IOException("Folder '" + target.toString() + "' already exists.");
+        }
+
+        try (ZipInputStream zipStream = new ZipInputStream(url.openStream())) {
+            byte[] buffer = new byte[2048];
+            ZipEntry entry;
+
+            Files.createDirectories(target);
+
+            while ((entry = zipStream.getNextEntry()) != null) {
+                Path entryPath = target.resolve(entry.getName());
+
+                if (entry.isDirectory()) {
+                    Files.createDirectories(entryPath);
+                } else {
+                    Files.createDirectories(entryPath.getParent());
+                    try (FileOutputStream outputStream = new FileOutputStream(target.resolve(entry.getName()).toFile())) {
+                        int len = 0;
+                        while ((len = zipStream.read(buffer)) > 0) {
+                            outputStream.write(buffer, 0, len);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        throw e;
+                    }
+                }
+            }
+        }
+
+        return getTemplate(name);
     }
 }
