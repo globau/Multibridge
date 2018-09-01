@@ -142,6 +142,21 @@ public class Instance implements Listener {
     /**
      * Return Placeholders
      */
+    public Map<String, String> getLocalTags() {
+        tags = new HashMap<>();
+        // Add Instance Settings
+        if (instanceConfig.contains("tags")) {
+            for (String k : instanceConfig.getSection("tags").getKeys()) {
+                tags.put(k.toUpperCase(), instanceConfig.getSection("tags").getString(k));
+            }
+        }
+        return tags;
+    }
+
+    public String getLocalTag(String key) {
+        return instanceConfig.getString("tags." + key.toUpperCase());
+    }
+
     public Map<String, String> getTags() {
         return getTags(true);
     }
@@ -203,7 +218,7 @@ public class Instance implements Listener {
     /**
      * Unregister with Bungeecord
      */
-    private void unregisterBungee() {
+    protected void unregisterBungee() {
         if (!bungeeRegistered) {
             return;
         }
@@ -320,7 +335,7 @@ public class Instance implements Listener {
             }
 
             // Update instanceConfig
-            setTag("MB_FIRST_RUN", true);
+            setTag("MB_FIRST_RUN", "true");
         }
 
         // Update Dynamics
@@ -456,18 +471,6 @@ public class Instance implements Listener {
         updateAuto();
     }
 
-    public void setTag(String key, int value) {
-        instanceConfig.set("tags." + key, value);
-        saveConfig();
-        updateAuto();
-    }
-
-    public void setTag(String key, boolean value) {
-        instanceConfig.set("tags." + key, value);
-        saveConfig();
-        updateAuto();
-    }
-
     public void clearTag(String key) {
         instanceConfig.set("tags." + key, null);
         saveConfig();
@@ -497,7 +500,7 @@ public class Instance implements Listener {
     }
 
     public void setStartDelay(int delay) {
-        setTag("MB_START_DELAY", delay);
+        setTag("MB_START_DELAY", String.valueOf(delay));
     }
 
     /**
@@ -520,7 +523,7 @@ public class Instance implements Listener {
     }
 
     public void setStopDelay(int delay) {
-        setTag("MB_STOP_DELAY", delay);
+        setTag("MB_STOP_DELAY", String.valueOf(delay));
     }
 
     public boolean hasRequiredTags() {

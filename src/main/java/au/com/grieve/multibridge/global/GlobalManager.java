@@ -1,6 +1,7 @@
 package au.com.grieve.multibridge.global;
 
 import au.com.grieve.multibridge.MultiBridge;
+import au.com.grieve.multibridge.instance.Instance;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
@@ -47,11 +48,33 @@ public class GlobalManager {
     public void setTag(String key, String value) {
         globalConfig.set("tags." + key, value);
         saveConfig();
+
+        // Update Instances
+        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+            for(Instance instance: plugin.getInstanceManager().getInstances().values()) {
+                try {
+                    instance.reloadConfig();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     public void clearTag(String key) {
         globalConfig.set("tags." + key, null);
         saveConfig();
+
+        // Update Instances
+        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+            for(Instance instance: plugin.getInstanceManager().getInstances().values()) {
+                try {
+                    instance.reloadConfig();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     public Map<String, String> getTags() {
