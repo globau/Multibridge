@@ -235,7 +235,7 @@ public class Instance implements Listener {
         registerBungee();
 
         // Build Template Files
-        SimpleTemplate st = new SimpleTemplate(getTags());
+        SimpleTemplate st = new SimpleTemplate(tags);
         updateTemplates(st);
 
         // Execute

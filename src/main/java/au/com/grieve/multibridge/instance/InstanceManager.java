@@ -1,6 +1,7 @@
 package au.com.grieve.multibridge.instance;
 
 import au.com.grieve.multibridge.MultiBridge;
+import au.com.grieve.multibridge.template.Template;
 import au.com.grieve.multibridge.template.TemplateManager;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.config.Configuration;
@@ -154,7 +155,7 @@ public class InstanceManager implements Listener {
     }
 
     public Instance create(String templateName, String instanceName) {
-        TemplateManager.Template template = plugin.getTemplateManager().getTemplate(templateName);
+        Template template = plugin.getTemplateManager().getTemplate(templateName);
 
         // Does Template Exist?
         if (template == null) {
@@ -183,12 +184,12 @@ public class InstanceManager implements Listener {
         }
 
         // Copy Template to Instance
-        try (Stream<Path> stream = Files.walk(template.location)) {
+        try (Stream<Path> stream = Files.walk(template.getTemplateFolder())) {
             stream.forEach(sourcePath -> {
                 try {
                     Files.copy(
                             sourcePath,
-                            target.resolve(template.location.relativize(sourcePath)));
+                            target.resolve(template.getTemplateFolder().relativize(sourcePath)));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

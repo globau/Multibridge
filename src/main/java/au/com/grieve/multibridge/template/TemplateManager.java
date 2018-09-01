@@ -7,30 +7,23 @@ import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 public class TemplateManager {
-    /**
-     * Definition of a Template
-     */
-    public class Template {
-        public final Path location;
-        public final Configuration config;
-
-        public Template(Path location, Configuration config) {
-            this.location = location;
-            this.config = config;
-        }
-
-    }
-
     private final MultiBridge plugin;
 
     public TemplateManager(MultiBridge plugin) {
@@ -61,7 +54,12 @@ public class TemplateManager {
             paths
                     .filter(Files::isDirectory)
                     .filter(p -> Files.exists(p.resolve("template.yml")))
-                    .forEach(p -> templates.put(p.getFileName().toString(), getTemplate(p.getFileName().toString())));
+                    .forEach(p -> {
+                        Template template = getTemplate(p.getFileName().toString());
+                        if (template != null) {
+                            templates.put(p.getFileName().toString(), template);
+                        }
+                    });
         } catch (IOException ignored) {
         }
 
@@ -74,26 +72,49 @@ public class TemplateManager {
     public Template getTemplate(String name) {
         Path templateFolder = getTemplateFolder().resolve(name);
 
-        // Make sure Folder Exists
-        if (!Files.exists(templateFolder)) {
-            return null;
-        }
-
-        Path templateConfigFile = templateFolder.resolve("template.yml");
-
-        // Make sure config file exists
-        if (!Files.exists(templateConfigFile)) {
-            return null;
-        }
-
-        Configuration config;
         try {
-            config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(templateConfigFile.toFile());
-        } catch (IOException e) {
+            return new Template(templateFolder);
+        } catch (InstantiationException e) {
+            // @TODO maybe throw another exception
             return null;
         }
+    }
 
-        return new Template(templateFolder, config);
+    /**
+     * Download a zipped Template from a URL to a new template folder
+     */
+    public Template downloadTemplate(String name, URL url) throws IOException {
+        Path target = getTemplateFolder().resolve(name);
+        if (Files.exists(target)) {
+            throw new IOException("Folder '" + target.toString() + "' already exists.");
+        }
 
+        try (ZipInputStream zipStream = new ZipInputStream(url.openStream())) {
+            byte[] buffer = new byte[2048];
+            ZipEntry entry;
+
+            Files.createDirectories(target);
+
+            while ((entry = zipStream.getNextEntry()) != null) {
+                Path entryPath = target.resolve(entry.getName());
+
+                if (entry.isDirectory()) {
+                    Files.createDirectories(entryPath);
+                } else {
+                    Files.createDirectories(entryPath.getParent());
+                    try (FileOutputStream outputStream = new FileOutputStream(target.resolve(entry.getName()).toFile())) {
+                        int len = 0;
+                        while ((len = zipStream.read(buffer)) > 0) {
+                            outputStream.write(buffer, 0, len);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        throw e;
+                    }
+                }
+            }
+        }
+
+        return getTemplate(name);
     }
 }
