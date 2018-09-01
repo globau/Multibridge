@@ -16,6 +16,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -586,7 +587,7 @@ public class Instance implements Listener {
      */
     @EventHandler
     public void onServerConnectEvent(ServerConnectEvent event) {
-        if (event.getTarget().getName().equals(name)) {
+        if (event.getTarget().getName().equalsIgnoreCase(name)) {
             if (!isRunning() && getStartMode() == StartMode.INSTANCE_JOIN) {
                 System.out.println("[" + name + "] " + "Auto-Starting: Instance Join");
                 try {
@@ -596,11 +597,38 @@ public class Instance implements Listener {
                     return;
                 }
 
-                // Delay the connection
-                try {
-                    Thread.sleep(getStartDelay() * 1000);
-                } catch (InterruptedException ignored) {
-                }
+                // Cancel the event and wait for it to really come up
+                event.setCancelled(true);
+
+                // Get current time
+                Date date = new Date();
+                long startTime = date.getTime();
+
+                manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), new Runnable() {
+                    @Override
+                    public void run() {
+                        Runnable that = this;
+                        event.getTarget().ping((serverPing, ex) -> {
+                            if (serverPing == null) {
+                                // Failed. Schedule to try again in a second if we have not run out of time
+                                if (date.getTime() - startTime > (getStartDelay()*1000)) {
+                                    System.err.println("[" + name + "] " + "Failed to connect to Instance: Timed out");
+                                    return;
+                                }
+
+                                if (!isRunning()) {
+                                    System.err.println("[" + name + "] " + "Failed to connect to Instance: Shut down");
+                                    return;
+                                }
+
+                                manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), that, 2, TimeUnit.SECONDS);
+                                return;
+                            }
+
+                            event.getPlayer().connect(event.getTarget());
+                        });
+                    }
+                }, 1, TimeUnit.SECONDS);
             }
         }
     }
