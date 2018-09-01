@@ -104,6 +104,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
             sender.sendMessage(new ComponentBuilder("--- [ Template Help ] ---").color(ChatColor.AQUA).create());
             sender.sendMessage(new ComponentBuilder("/mb template").color(ChatColor.RED).append(" list").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb template").color(ChatColor.RED).append(" download").color(ChatColor.YELLOW).create());
             return;
         }
 
@@ -111,6 +112,9 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             case "list":
                 listTemplates(sender, arguments.shift(1));
                 return;
+            case "download":
+                downloadTemplate(sender, arguments.shift(1));
+                break;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
                 break;
@@ -184,6 +188,45 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             sender.sendMessage(new ComponentBuilder("/mb template list").color(ChatColor.RED).append(" 2").color(ChatColor.YELLOW).create());
             return;
         }
+
+        int page = 1;
+        if (arguments.args.size() > 0) {
+            try {
+                page = Math.max(1,Integer.parseInt(arguments.args.get(0)));
+            } catch (NumberFormatException e) {
+                sender.sendMessage(new ComponentBuilder("Invalid Page Number").color(ChatColor.RED).create());
+                return;
+            }
+        }
+
+        sender.sendMessage(new ComponentBuilder("--- Templates ---").color(ChatColor.AQUA).create());
+
+        Map<String, TemplateManager.Template> templates = plugin.getTemplateManager().getTemplates();
+        if (templates.size() <= (page-1)*20) {
+            sender.sendMessage(new ComponentBuilder("No templates found").color(ChatColor.GREEN).create());
+            return;
+        }
+
+        templates.keySet().stream()
+                .skip(20*(page-1))
+                .forEach(s -> sender.sendMessage(new ComponentBuilder(s).color(ChatColor.DARK_AQUA).create()));
+    }
+
+    /**
+     * Template Download
+     */
+    private void downloadTemplate(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() < 2 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Download Template Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("Download a template zip file").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb template download").color(ChatColor.RED).append(" <name> <URL>").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("/mb template download").color(ChatColor.RED).append(" example http://example.org/template.zip").color(ChatColor.YELLOW).create());
+            return;
+        }
+
+        TemplateManager.Template template = plugin.getTemplateManager().create()
+
 
         int page = 1;
         if (arguments.args.size() > 0) {
