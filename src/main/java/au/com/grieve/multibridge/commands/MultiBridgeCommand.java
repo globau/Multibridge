@@ -2,14 +2,18 @@ package au.com.grieve.multibridge.commands;
 
 import au.com.grieve.multibridge.MultiBridge;
 import au.com.grieve.multibridge.instance.Instance;
+import au.com.grieve.multibridge.template.Template;
 import au.com.grieve.multibridge.template.TemplateManager;
+import net.md_5.bungee.api.Callback;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.TabExecutor;
+import net.md_5.bungee.protocol.packet.Chat;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.*;
 
 public class MultiBridgeCommand extends Command implements TabExecutor {
@@ -201,7 +205,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         sender.sendMessage(new ComponentBuilder("--- Templates ---").color(ChatColor.AQUA).create());
 
-        Map<String, TemplateManager.Template> templates = plugin.getTemplateManager().getTemplates();
+        Map<String, Template> templates = plugin.getTemplateManager().getTemplates();
         if (templates.size() <= (page-1)*20) {
             sender.sendMessage(new ComponentBuilder("No templates found").color(ChatColor.GREEN).create());
             return;
@@ -225,30 +229,28 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             return;
         }
 
-        TemplateManager.Template template = plugin.getTemplateManager().create()
+        String name = arguments.args.get(0);
+        String url = arguments.args.get(1);
 
-
-        int page = 1;
-        if (arguments.args.size() > 0) {
+        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+            Template template;
             try {
-                page = Math.max(1,Integer.parseInt(arguments.args.get(0)));
-            } catch (NumberFormatException e) {
-                sender.sendMessage(new ComponentBuilder("Invalid Page Number").color(ChatColor.RED).create());
+                template = plugin.getTemplateManager().downloadTemplate(name, new URL(url));
+            } catch (IOException e) {
+                sender.sendMessage(new ComponentBuilder("Failed to download template: ").color(ChatColor.RED)
+                        .append(e.getMessage()).color(ChatColor.YELLOW).create());
                 return;
             }
-        }
 
-        sender.sendMessage(new ComponentBuilder("--- Templates ---").color(ChatColor.AQUA).create());
+            // Success
+            sender.sendMessage(new ComponentBuilder("Downloaded Template: ").color(ChatColor.GREEN)
+                    .append(name).color(ChatColor.YELLOW).create());
+        });
 
-        Map<String, TemplateManager.Template> templates = plugin.getTemplateManager().getTemplates();
-        if (templates.size() <= (page-1)*20) {
-            sender.sendMessage(new ComponentBuilder("No templates found").color(ChatColor.GREEN).create());
-            return;
-        }
-
-        templates.keySet().stream()
-                .skip(20*(page-1))
-                .forEach(s -> sender.sendMessage(new ComponentBuilder(s).color(ChatColor.DARK_AQUA).create()));
+        sender.sendMessage(new ComponentBuilder("Downloading Template: ").color(ChatColor.GREEN)
+                .append(url).color(ChatColor.YELLOW)
+                .append(" -> ").color(ChatColor.DARK_AQUA)
+                .append(name).color(ChatColor.YELLOW).create());
     }
 
     /**
