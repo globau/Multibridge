@@ -1,4 +1,4 @@
-package au.com.grieve.multibridge.builder.Vanilla.patcher;
+package au.com.grieve.multibridge.builder.Vanilla.util;
 
 import java.net.URL;
 import java.net.URLClassLoader;
