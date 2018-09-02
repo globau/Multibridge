@@ -1,5 +1,6 @@
 package au.com.grieve.multibridge;
 
+import au.com.grieve.multibridge.builder.Vanilla.VanillaBuilder;
 import au.com.grieve.multibridge.commands.MultiBridgeCommand;
 import au.com.grieve.multibridge.global.GlobalManager;
 import au.com.grieve.multibridge.instance.InstanceManager;
@@ -35,6 +36,9 @@ public class MultiBridge extends Plugin {
 
         // Register Commands
         getProxy().getPluginManager().registerCommand(this, new MultiBridgeCommand(this));
+
+        // Register Listeners
+        getProxy().getPluginManager().registerListener(this, new VanillaBuilder(this));
 
     }
 

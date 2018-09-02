@@ -355,6 +355,9 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                                 case WAITING:
                                     msg.append("WAITING").color(ChatColor.YELLOW);
                                     break;
+                                case PENDING:
+                                    msg.append("PENDING").color(ChatColor.YELLOW);
+                                    break;
                                 case ERROR:
                                     msg.append("ERROR").color(ChatColor.RED);
                                     break;
@@ -392,11 +395,17 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         // Async It
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
             // Create a new Instance
-            Instance instance = plugin.getInstanceManager().create(templateName, instanceName);
+            Instance instance;
+            try {
+                instance = plugin.getInstanceManager().create(templateName, instanceName);
+            } catch (IOException e) {
+                sender.sendMessage(new ComponentBuilder("Unable to create new Instance: ").color(ChatColor.RED)
+                        .append(e.getMessage()).color(ChatColor.YELLOW).create());
+                return;
+            }
 
-            // @TODO: Make use of exceptions rather than returning null
+            // Null instance means it was cancelled silently
             if (instance == null) {
-                sender.sendMessage(new ComponentBuilder("Unable to create new Instance").color(ChatColor.RED).create());
                 return;
             }
 
@@ -482,7 +491,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             // Start Instance
             try {
                 instance.start();
-            } catch (RuntimeException e) {
+            } catch (IOException e) {
                 sender.sendMessage(new ComponentBuilder("Unable to start Instance: ").color(ChatColor.RED)
                         .append(e.getMessage()).color(ChatColor.YELLOW).create());
                 return;
@@ -525,7 +534,10 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         // Schedule the task
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
             // Start Instance
-            instance.stop();
+            try {
+                instance.stop();
+            } catch (IOException ignored) {
+            }
 
             // Success
             sender.sendMessage(new ComponentBuilder("Instance Stopping").color(ChatColor.GREEN).create());
@@ -573,6 +585,9 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 break;
             case WAITING:
                 msg.append("WAITING").color(ChatColor.YELLOW);
+                break;
+            case PENDING:
+                msg.append("PENDING").color(ChatColor.YELLOW);
                 break;
             case ERROR:
                 msg.append("ERROR").color(ChatColor.RED);
