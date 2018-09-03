@@ -126,20 +126,6 @@ public class Instance implements Listener {
     }
 
     /**
-     * Build the Instance
-     */
-    private void build() {
-        State oldState = getState();
-
-        setState(State.BUSY);
-        BuildEvent event = manager.getPlugin().getProxy().getPluginManager().callEvent(new BuildEvent(this));
-
-//        if (!event.isError()) {
-//            setState(oldState);
-//        }
-    }
-
-    /**
      * Save instanceConfig
      */
     private void saveConfig() {
