@@ -51,8 +51,6 @@ public class Instance implements Listener {
     private Integer port;
     private boolean bungeeRegistered = false;
     private State state = State.STOPPED;
-    private boolean auto = false;
-    private List<Runnable> tasks;
 
     // Tags
     private Map<String,String> tags;
@@ -77,22 +75,21 @@ public class Instance implements Listener {
 
         loadConfig();
 
-//        // Handle StartMode
-//        switch(getStartMode()) {
-//            case SERVER_START:
-//                manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
-//                    System.out.println("[" + name + "] " + "Auto-Starting: Server Start");
-//                    try {
-//                        start();
-//                    } catch (IOException e) {
-//                        System.err.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
-//                    }
-//                }, getStartDelay(), TimeUnit.SECONDS);
-//                break;
-//            case INSTANCE_JOIN:
-//            case SERVER_JOIN:
-//                setAuto(true);
-//        }
+        // Handle StartMode
+        switch(getStartMode()) {
+            case SERVER_START:
+                manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
+                    System.out.println("[" + name + "] " + "Auto-Starting: Server Start");
+                    try {
+                        start();
+                    } catch (IOException e) {
+                        System.err.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
+                    }
+                }, getStartDelay(), TimeUnit.SECONDS);
+                break;
+        }
+
+        updateAuto();
     }
 
     /**
@@ -263,13 +260,14 @@ public class Instance implements Listener {
      * Set Auto
      */
     public void setAuto(Boolean auto) {
-        this.auto = auto;
+        instanceConfig.set("auto.enabled", auto);
+        saveConfig();
         updateAuto();
     }
 
     private void updateAuto() {
         if (getState() == State.STOPPED) {
-            if (auto) {
+            if (getAuto()) {
                 registerBungee();
             } else {
                 unregisterBungee();
@@ -278,7 +276,7 @@ public class Instance implements Listener {
     }
 
     public boolean getAuto() {
-        return this.auto;
+        return instanceConfig.getBoolean("auto.enabled", false);
     }
 
     /**
@@ -591,7 +589,7 @@ public class Instance implements Listener {
     }
 
     public void setStopMode(StopMode mode) {
-        instanceConfig.set("auto.stop.mode", mode);
+        instanceConfig.set("auto.stop.mode", mode.toString());
         saveConfig();
     }
 
@@ -676,7 +674,7 @@ public class Instance implements Listener {
     @EventHandler
     public void onServerConnectEvent(ServerConnectEvent event) {
         if (event.getTarget().getName().equalsIgnoreCase(name)) {
-            if (getAuto() && getState() == State.STOPPED && getStartMode() == StartMode.INSTANCE_JOIN) {
+            if (getAuto() && getState() == State.STOPPED && (getStartMode() == StartMode.INSTANCE_JOIN || getStartMode() == StartMode.SERVER_JOIN)) {
                 // Cancel the event and wait for it to really come up
                 event.setCancelled(true);
 
@@ -722,9 +720,11 @@ public class Instance implements Listener {
      */
     @EventHandler
     public void onPlayerDisconnectEvent(PlayerDisconnectEvent event) {
+        System.err.println("Players: " + String.valueOf(manager.getPlugin().getProxy().getPlayers().size()));
         if (manager.getPlugin().getProxy().getPlayers().size() < 2) {
             if (getState() == State.STARTED && getStopMode() == StopMode.SERVER_EMPTY) {
                 manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
+                    System.err.println("Players: " + String.valueOf(manager.getPlugin().getProxy().getPlayers().size()));
                     if (manager.getPlugin().getProxy().getPlayers().size() < 1) {
                         System.out.println("[" + name + "] " + "Auto-Stopping: Server Empty");
                         try {

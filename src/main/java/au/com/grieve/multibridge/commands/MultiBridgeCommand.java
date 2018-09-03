@@ -160,6 +160,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" list").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" info").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" tag").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" auto").color(ChatColor.YELLOW).create());
 //            sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" send").color(ChatColor.YELLOW).create());
             return;
         }
@@ -186,6 +187,9 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             case "tag":
                 subcommandInstanceTag(sender, arguments.shift(1));
                 break;
+            case "auto":
+                subcommandInstanceAuto(sender, arguments.shift(1));
+                break;
 //            case "send":
 //                sendInstance(sender, arguments.shift(1));
 //                break;
@@ -202,6 +206,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             sender.sendMessage(new ComponentBuilder("/mb instance tag").color(ChatColor.RED).append(" set").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb instance tag").color(ChatColor.RED).append(" get").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb instance tag").color(ChatColor.RED).append(" list").color(ChatColor.YELLOW).create());
+
             return;
         }
 
@@ -220,6 +225,174 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 break;
         }
 
+    }
+
+    private void subcommandInstanceAuto(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Instance Auto Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto").color(ChatColor.RED).append(" start").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto").color(ChatColor.RED).append(" stop").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto").color(ChatColor.RED).append(" enable").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto").color(ChatColor.RED).append(" disable").color(ChatColor.YELLOW).create());
+            return;
+        }
+
+        switch(arguments.args.get(0).toLowerCase()) {
+            case "start":
+                instanceAutoStart(sender, arguments.shift(1));
+                return;
+            case "stop":
+                instanceAutoStop(sender, arguments.shift(1));
+                return;
+            case "enable":
+                instanceAutoEnable(sender, arguments.shift(1));
+                return;
+            case "disable":
+                instanceAutoDisable(sender, arguments.shift(1));
+                return;
+            default:
+                sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
+                break;
+        }
+
+    }
+
+    /**
+     * Enable Autos
+     */
+    private void instanceAutoEnable(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() < 1 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Instance Auto Enable Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("Enable auto start/stop.").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto enable").color(ChatColor.RED).append(" <instance>").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto enable").color(ChatColor.RED).append(" World1").create());
+            return;
+        }
+
+        Instance instance = plugin.getInstanceManager().getInstance(arguments.args.get(0));
+
+        if (instance == null) {
+            sender.sendMessage(new ComponentBuilder("Instance does not exist").color(ChatColor.RED).create());
+            return;
+        }
+
+        instance.setAuto(true);
+
+        sender.sendMessage(new ComponentBuilder("Auto Enabled").color(ChatColor.RED).create());
+    }
+
+    /**
+     * Disable Autos
+     */
+    private void instanceAutoDisable(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() < 1 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Instance Auto Disable Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("Disable auto start/stop.").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto disable").color(ChatColor.RED).append(" <instance>").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto disable").color(ChatColor.RED).append(" World1").create());
+            return;
+        }
+
+        Instance instance = plugin.getInstanceManager().getInstance(arguments.args.get(0));
+
+        if (instance == null) {
+            sender.sendMessage(new ComponentBuilder("Instance does not exist").color(ChatColor.RED).create());
+            return;
+        }
+
+        instance.setAuto(false);
+
+        sender.sendMessage(new ComponentBuilder("Auto Disabled").color(ChatColor.RED).create());
+    }
+
+    /**
+     * Set Auto Start
+     */
+    private void instanceAutoStart(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() < 2 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Instance Auto Start Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("Setup the Auto Start options for this instance.").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto start").color(ChatColor.RED).append(" <instance> <mode> [<delay>]").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("Mode:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("  SERVER_START - ").color(ChatColor.DARK_AQUA)
+                    .append("Start when Server Starts").color(ChatColor.GREEN).create());
+            sender.sendMessage(new ComponentBuilder("  SERVER_JOIN - ").color(ChatColor.DARK_AQUA)
+                    .append("Start when a player joins the server").color(ChatColor.GREEN).create());
+            sender.sendMessage(new ComponentBuilder("  INSTANCE_START - ").color(ChatColor.DARK_AQUA)
+                    .append("Start when a player tries to connect to instance").color(ChatColor.GREEN).create());
+            sender.sendMessage(new ComponentBuilder("  MANUAL - ").color(ChatColor.DARK_AQUA)
+                    .append("Disabled").color(ChatColor.GREEN).create());
+            sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto start").color(ChatColor.RED).append(" World1 SERVER_START 5").create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto start").color(ChatColor.RED).append(" World1 SERVER_JOIN 5").create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto start").color(ChatColor.RED).append(" World1 INSTANCE_JOIN").create());
+            return;
+        }
+
+        Instance instance = plugin.getInstanceManager().getInstance(arguments.args.get(0));
+
+        if (instance == null) {
+            sender.sendMessage(new ComponentBuilder("Instance does not exist").color(ChatColor.RED).create());
+            return;
+        }
+
+        try {
+            instance.setStartMode(Instance.StartMode.valueOf(arguments.args.get(1).toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            sender.sendMessage(new ComponentBuilder("Invalid Mode").color(ChatColor.RED).create());
+            return;
+        }
+
+        if (arguments.args.size() > 2) {
+            instance.setStartDelay(Math.max(0,Integer.valueOf(arguments.args.get(2))));
+        }
+
+        sender.sendMessage(new ComponentBuilder("Set Auto Start").color(ChatColor.RED).create());
+    }
+
+    /**
+     * Set Auto Start
+     */
+    private void instanceAutoStop(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() < 2 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Instance Auto Stop Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("Setup the Auto Stop options for this instance.").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto stop").color(ChatColor.RED).append(" <instance> <mode> [<delay>]").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("Mode:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("  SERVER_EMPTY - ").color(ChatColor.DARK_AQUA)
+                    .append("Start when Server is empty of players").color(ChatColor.GREEN).create());
+            sender.sendMessage(new ComponentBuilder("  INSTANCE_EMPTY - ").color(ChatColor.DARK_AQUA)
+                    .append("When the Instance is empty").color(ChatColor.GREEN).create());
+            sender.sendMessage(new ComponentBuilder("  MANUAL - ").color(ChatColor.DARK_AQUA)
+                    .append("Disabled").color(ChatColor.GREEN).create());
+            sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto stop").color(ChatColor.RED).append(" World1 SERVER_EMPTY 5").create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto stop").color(ChatColor.RED).append(" World1 INSTANCE_EMPTY 5").create());
+            sender.sendMessage(new ComponentBuilder("/mb instance auto stop").color(ChatColor.RED).append(" World1 MANUAL").create());
+            return;
+        }
+
+        Instance instance = plugin.getInstanceManager().getInstance(arguments.args.get(0));
+
+        if (instance == null) {
+            sender.sendMessage(new ComponentBuilder("Instance does not exist").color(ChatColor.RED).create());
+            return;
+        }
+
+        try {
+            instance.setStopMode(Instance.StopMode.valueOf(arguments.args.get(1).toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            sender.sendMessage(new ComponentBuilder("Invalid Mode").color(ChatColor.RED).create());
+            return;
+        }
+
+        if (arguments.args.size() > 2) {
+            instance.setStopDelay(Math.max(0,Integer.valueOf(arguments.args.get(2))));
+        }
+
+        sender.sendMessage(new ComponentBuilder("Set Auto Stop").color(ChatColor.RED).create());
     }
 
 
@@ -578,6 +751,9 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 .append("[").color(ChatColor.DARK_GRAY)
                 .append(instanceStateToMessage(instance.getState()))
                 .append("]").color(ChatColor.DARK_GRAY).create());
+
+        sender.sendMessage(new ComponentBuilder("Auto: ").color(ChatColor.DARK_AQUA)
+                .append(instance.getAuto()?"ENABLED":"DISABLED").color(instance.getAuto()?ChatColor.YELLOW:ChatColor.DARK_GRAY).create());
 
         sender.sendMessage(new ComponentBuilder("Start:").color(ChatColor.DARK_AQUA).create());
         sender.sendMessage(new ComponentBuilder("  Mode: ").color(ChatColor.DARK_AQUA)
