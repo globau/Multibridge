@@ -3,8 +3,7 @@ package au.com.grieve.multibridge.builder.Vanilla;
 /*
  * Please note that the Vanilla Patching code here came mostly from VanillaCord GitHub respository of ME1312 who forked it from maximvarentsov
  * who forked it from Thinkofname. As there was no easy way to use the code as a library I've re-written it slightly for this plugin but
- * wanted to give due credit. I've also subsequently discovered ME1312 has also written a Bungeecord management plugin which looks pretty
- * good called SubServer.
+ * wanted to give due credit.
  *
  * https://github.com/ME1312/VanillaCord
  */
@@ -85,7 +84,7 @@ public class VanillaBuilder implements Listener {
                 return;
             }
 
-            event.getInstance().update();
+//            event.getInstance().update();
         });
     }
 
@@ -258,12 +257,13 @@ public class VanillaBuilder implements Listener {
         Files.createDirectory(cacheFolder.resolve("in"));
         Files.copy(server.getPath(), cacheFolder.resolve("in").resolve(server.getVersion() + ".jar"));
 
-        URLOverrideClassLoader loader = new URLOverrideClassLoader(new URL[]{patcherFile.toUri().toURL(), server.getPath().toUri().toURL()});
-        try {
-            loader.loadClass(patchProfile.get("launch").getAsString()).getDeclaredMethod("main", String[].class).invoke(null, (Object) new String[]{server.getVersion()});
-        } catch (Exception e) {
-            throw new IOException("Failed to patch: " + e.getMessage());
-        }
+//        URLOverrideClassLoader loader = new URLOverrideClassLoader(new URL[]{patcherFile.toUri().toURL(), server.getPath().toUri().toURL()});
+//        try {
+//            loader.loadClass(patchProfile.get("launch").getAsString()).getDeclaredMethod("main", String[].class).invoke(null, (Object) new String[]{server.getVersion()});
+//        } catch (Exception e) {
+//            throw new IOException("Failed to patch: " + e.getMessage());
+//        }
+
 
         // Copy Patched file to our location
         Files.copy(cacheFolder.resolve("out").resolve(server.getVersion() + "-bungee.jar"), cacheFolder.resolve("vanilla-patched-" + server.getVersion() + ".jar"));

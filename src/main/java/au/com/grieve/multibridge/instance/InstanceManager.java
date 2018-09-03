@@ -1,7 +1,6 @@
 package au.com.grieve.multibridge.instance;
 
 import au.com.grieve.multibridge.MultiBridge;
-import au.com.grieve.multibridge.api.event.BuildEvent;
 import au.com.grieve.multibridge.template.Template;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.config.Configuration;
@@ -15,7 +14,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
 
-public class InstanceManager implements Listener {
+public class InstanceManager {
     private final MultiBridge plugin;
 
     private Map<String, Instance> instances = new HashMap<>();
@@ -62,7 +61,6 @@ public class InstanceManager implements Listener {
             return;
         }
 
-
         try (Stream<Path> paths = Files.list(getInstanceFolder())) {
             paths
                     .filter(Files::isDirectory)
@@ -74,10 +72,6 @@ public class InstanceManager implements Listener {
                             if (!plugin.getProxy().getServers().containsKey(name)) {
                                 try {
                                     Instance instance = new Instance(this, p);
-
-                                    // Register as a Listener
-                                    plugin.getProxy().getPluginManager().registerListener(plugin,this);
-
                                     instances.put(instance.getName(), instance);
                                 } catch (InstantiationException e) {
                                     e.printStackTrace();
@@ -131,7 +125,7 @@ public class InstanceManager implements Listener {
         assert(instance != null);
         assert(!instance.isRunning());
 
-        plugin.getProxy().getPluginManager().unregisterListener(instance);
+        instance.cleanUp();
         instances.remove(instance.getName());
 
         // Remove the Directory
@@ -140,8 +134,6 @@ public class InstanceManager implements Listener {
                     .map(Path::toFile)
                     .forEach(File::delete);
         }
-
-        instance.unregisterBungee();
     }
 
     /**

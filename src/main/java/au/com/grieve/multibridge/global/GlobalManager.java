@@ -52,11 +52,7 @@ public class GlobalManager {
         // Update Instances
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
             for(Instance instance: plugin.getInstanceManager().getInstances().values()) {
-                try {
-                    instance.reloadConfig();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                instance.reloadConfig();
             }
         });
     }
@@ -68,11 +64,7 @@ public class GlobalManager {
         // Update Instances
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
             for(Instance instance: plugin.getInstanceManager().getInstances().values()) {
-                try {
-                    instance.reloadConfig();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                instance.reloadConfig();
             }
         });
     }

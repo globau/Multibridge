@@ -5,6 +5,7 @@ import au.com.grieve.multibridge.instance.Instance;
 import au.com.grieve.multibridge.template.Template;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.TabExecutor;
@@ -307,6 +308,30 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
     }
 
     /**
+     * Convert an Instance State to a ComponentBuilder Message
+     */
+    private BaseComponent[] instanceStateToMessage(Instance.State state) {
+        switch(state) {
+            case STARTING:
+                return new ComponentBuilder("STARTING").color(ChatColor.LIGHT_PURPLE).create();
+            case STARTED:
+                return new ComponentBuilder("STARTED").color(ChatColor.GREEN).create();
+            case STOPPING:
+                return new ComponentBuilder("STOPPING").color(ChatColor.LIGHT_PURPLE).create();
+            case STOPPED:
+                return new ComponentBuilder("STOPPED").color(ChatColor.GRAY).create();
+            case WAITING:
+                return new ComponentBuilder("WAITING").color(ChatColor.YELLOW).create();
+            case BUSY:
+                return new ComponentBuilder("BUSY").color(ChatColor.YELLOW).create();
+            case ERROR:
+                return new ComponentBuilder("ERROR").color(ChatColor.RED).create();
+        }
+
+        return new ComponentBuilder("UNKNOWN").color(ChatColor.RED).create();
+    }
+
+    /**
      * List all Instances available
      *
      */
@@ -342,35 +367,11 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 .skip(10*(page-1))
                 .limit(10)
                 .forEach(s -> {
-                            ComponentBuilder msg = new ComponentBuilder(" - [").color(ChatColor.DARK_GRAY);
-
-                            Instance.State state = s.getState();
-                            switch(state) {
-                                case STARTED:
-                                    msg.append("ACTIVE").color(ChatColor.GREEN);
-                                    break;
-                                case STOPPED:
-                                    msg.append("STOPPED").color(ChatColor.GRAY);
-                                    break;
-                                case WAITING:
-                                    msg.append("WAITING").color(ChatColor.YELLOW);
-                                    break;
-                                case PENDING:
-                                    msg.append("PENDING").color(ChatColor.YELLOW);
-                                    break;
-                                case ERROR:
-                                    msg.append("ERROR").color(ChatColor.RED);
-                                    break;
-                                default:
-                                    msg.append("UNKNOWN").color(ChatColor.RED);
-                            }
-
-                            msg.append("]").color(ChatColor.DARK_GRAY);
-                            msg.append(" " + s.getName()).color(ChatColor.DARK_AQUA);
-
-                            sender.sendMessage(msg.create());
+                            sender.sendMessage(new ComponentBuilder(" - [").color(ChatColor.DARK_GRAY)
+                                    .append(instanceStateToMessage(s.getState()))
+                                    .append("]").color(ChatColor.DARK_GRAY)
+                                    .append(" " + s.getName()).color(ChatColor.DARK_AQUA).create());
                 });
-
     }
 
     /**
@@ -573,30 +574,10 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         sender.sendMessage(new ComponentBuilder("Name: ").color(ChatColor.DARK_AQUA)
                 .append(instance.getName()).color(ChatColor.GREEN).create());
 
-        ComponentBuilder msg = new ComponentBuilder("State: ").color(ChatColor.DARK_AQUA)
-                .append("[").color(ChatColor.DARK_GRAY);
-
-        switch(instance.getState()) {
-            case STARTED:
-                msg.append("ACTIVE").color(ChatColor.GREEN);
-                break;
-            case STOPPED:
-                msg.append("STOPPED").color(ChatColor.GRAY);
-                break;
-            case WAITING:
-                msg.append("WAITING").color(ChatColor.YELLOW);
-                break;
-            case PENDING:
-                msg.append("PENDING").color(ChatColor.YELLOW);
-                break;
-            case ERROR:
-                msg.append("ERROR").color(ChatColor.RED);
-                break;
-            default:
-                msg.append("UNKNOWN").color(ChatColor.RED);
-        }
-        msg.append("]").color(ChatColor.DARK_GRAY);
-        sender.sendMessage(msg.create());
+        sender.sendMessage(new ComponentBuilder("State: ").color(ChatColor.DARK_AQUA)
+                .append("[").color(ChatColor.DARK_GRAY)
+                .append(instanceStateToMessage(instance.getState()))
+                .append("]").color(ChatColor.DARK_GRAY).create());
 
         sender.sendMessage("");
 
