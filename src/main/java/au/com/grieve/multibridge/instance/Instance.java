@@ -107,6 +107,7 @@ public class Instance implements Listener {
 
     @Override
     public void finalize() {
+        System.err.println("FINALIZE");
         unregisterBungee();
     }
 

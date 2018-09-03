@@ -251,7 +251,7 @@ public class VanillaBuilder implements Listener {
         // Download VanillaCord
         Path patcherFile = cacheFolder.resolve("vanillacord-" + patchVersion + ".jar");
         if (!Files.exists(patcherFile)) {
-            downloadFile(new URL(patchObject.get("url").getAsString()), patcherFile);
+            downloadFile(new URL(patchProfile.getAsJsonObject("download").get("url").getAsString()), patcherFile);
         }
 
         // Copy Original Server to location expected by VanillaCord

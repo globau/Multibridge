@@ -140,6 +140,8 @@ public class InstanceManager implements Listener {
                     .map(Path::toFile)
                     .forEach(File::delete);
         }
+
+        instance.unregisterBungee();
     }
 
     /**
