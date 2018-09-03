@@ -38,14 +38,11 @@ public class Instance implements Listener {
     }
 
     public enum State {
-        UNKNOWN,
         STARTING,
         STARTED,
         STOPPING,
         STOPPED,
         BUSY,
-        AUTO,
-        ERROR
     }
 
     // Variables
@@ -56,8 +53,8 @@ public class Instance implements Listener {
     private String name;
     private Integer port;
     private boolean bungeeRegistered = false;
-    private State state = State.UNKNOWN;
-    private boolean autoEnabled = false;
+    private State state = State.STOPPED;
+    private boolean auto = false;
 
     // Tags
     private Map<String,String> tags;
@@ -83,26 +80,26 @@ public class Instance implements Listener {
         loadConfig();
 
         // Handle Auto
-        switch(getStartMode()) {
-            case SERVER_START:
-                manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
-                    System.out.println("[" + name + "] " + "Auto-Starting: Server Start");
-                    try {
-                        start();
-                    } catch (IOException e) {
-                        System.err.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
-                    }
-                }, getStartDelay(), TimeUnit.SECONDS);
-                break;
-            case INSTANCE_JOIN:
-            case SERVER_JOIN:
-                autoEnabled = true;
-                setState(State.AUTO);
-                break;
-            case MANUAL:
-                setState(State.STOPPED);
-                break;
-        }
+//        switch(getStartMode()) {
+//            case SERVER_START:
+//                manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
+//                    System.out.println("[" + name + "] " + "Auto-Starting: Server Start");
+//                    try {
+//                        start();
+//                    } catch (IOException e) {
+//                        System.err.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
+//                    }
+//                }, getStartDelay(), TimeUnit.SECONDS);
+//                break;
+//            case INSTANCE_JOIN:
+//            case SERVER_JOIN:
+//                autoEnabled = true;
+//                setState(State.AUTO);
+//                break;
+//            case MANUAL:
+//                setState(State.STOPPED);
+//                break;
+//        }
 
 //        // Update State
 //        update();
@@ -318,16 +315,22 @@ public class Instance implements Listener {
     /**
      * Set Auto
      */
-    public void auto() throws IOException {
-        switch(getStartMode()) {
-            case SERVER_JOIN:
-            case INSTANCE_JOIN:
-                break;
-            default:
-                throw new IOException("Invalid StartMode:" + getStartMode().toString());
+    public void setAuto(Boolean auto) {
+        if (auto) {
+            if (getState() == State.STOPPED) {
+                registerBungee();
+            }
+            this.auto = true;
+        } else {
+            if (getState() == State.STOPPED) {
+                unregisterBungee();
+            }
+            this.auto = false;
         }
+    }
 
-        autoEnabled = true;
+    public boolean getAuto() {
+        return this.auto;
     }
 
     /**
@@ -390,11 +393,9 @@ public class Instance implements Listener {
                 reader = null;
                 writer = null;
 
-                if (autoEnabled) {
-                    setState(State.AUTO);
-                } else {
+                setState(State.STOPPED);
+                if (!getAuto()) {
                     unregisterBungee();
-                    setState(State.STOPPED);
                 }
             });
 
@@ -443,7 +444,7 @@ public class Instance implements Listener {
         } catch (Throwable e) {
             // Clean up if an error occurs
             process = null;
-            setState(State.ERROR);
+            setState(State.STOPPED);
             throw e;
         }
     }
@@ -460,10 +461,6 @@ public class Instance implements Listener {
                 throw new IOException("Already Stopped");
             case BUSY:
                 throw new IOException("Instance is Busy");
-            case AUTO:
-                unregisterBungee();
-                setState(State.STOPPED);
-                return;
         }
 
         try {
@@ -510,7 +507,7 @@ public class Instance implements Listener {
             }
 
         } catch (Throwable e) {
-            setState(State.ERROR);
+            setState(State.STOPPED);
             throw e;
         }
     }
@@ -603,14 +600,15 @@ public class Instance implements Listener {
      */
     public StartMode getStartMode() {
         try {
-            return StartMode.valueOf(getTag("MB_START_MODE", "MANUAL"));
+            return StartMode.valueOf(instanceConfig.getString("auto.start.mode", "MANUAL"));
         } catch (IllegalArgumentException e) {
-            return null;
+            return StartMode.MANUAL;
         }
     }
 
-    public void setStartMode(StartMode mode) {
+    public void setStartMode(StartMode mode, int delay) {
         setTag("MB_START_MODE", mode.toString());
+        instanceConfig.setString
     }
 
     /**
@@ -696,7 +694,7 @@ public class Instance implements Listener {
      */
     @EventHandler
     public void onPreLogin(PreLoginEvent event) {
-        if (getState() == State.AUTO && getStartMode() == StartMode.SERVER_JOIN) {
+        if (getAuto() && getState() == State.STOPPED && getStartMode() == StartMode.SERVER_JOIN) {
             manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
                 System.out.println("[" + name + "] " + "Auto-Starting: Server Join");
                 try {
@@ -714,7 +712,7 @@ public class Instance implements Listener {
     @EventHandler
     public void onServerConnectEvent(ServerConnectEvent event) {
         if (event.getTarget().getName().equalsIgnoreCase(name)) {
-            if (getState() == State.AUTO && getStartMode() == StartMode.INSTANCE_JOIN) {
+            if (getAuto() && getState() == State.STOPPED && getStartMode() == StartMode.INSTANCE_JOIN) {
                 // Cancel the event and wait for it to really come up
                 event.setCancelled(true);
 
