@@ -10,9 +10,9 @@ package au.com.grieve.multibridge.builder.Vanilla;
 
 import au.com.grieve.multibridge.MultiBridge;
 import au.com.grieve.multibridge.api.event.BuildEvent;
-import au.com.grieve.multibridge.api.event.ReadyEvent;
 import au.com.grieve.multibridge.builder.Vanilla.util.URLOverrideClassLoader;
 import au.com.grieve.multibridge.builder.Vanilla.util.Version;
+import au.com.grieve.multibridge.util.Task;
 import com.google.gson.*;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.config.Configuration;
@@ -63,37 +63,26 @@ public class VanillaBuilder implements Listener {
      */
     @EventHandler
     public void onBuild(BuildEvent event) {
-        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
-            Configuration config = event.getInstance().getTemplateConfig();
-            if (!config.contains("build.vanilla")) {
-                return;
-            }
+        event.addTask(new Task() {
+              @Override
+              public void execute() throws IOException {
+                  Configuration config = event.getInstance().getTemplateConfig();
 
-            String version = config.getString("build.vanilla.version", "latest");
-            String output = config.getString("build.vanilla.output", "server.jar");
+                  if (!config.contains("build.vanilla")) {
+                      return;
+                  }
 
-            Server server;
+                  String version = config.getString("build.vanilla.version", "latest");
+                  String output = config.getString("build.vanilla.output", "server.jar");
 
-            try {
-                System.out.println("[VanillaBuilder] [" + event.getInstance().getName() + "] Downloading Original Minecraft Server: " + version);
-                server = getServer(version);
-                patchServer(server, event.getInstance().getInstanceFolder().resolve(output));
-                System.out.println("[VanillaBuilder] [" + event.getInstance().getName() + "] Finished: " + server.getPath().getFileName());
-            } catch (IOException e) {
-                System.err.println("[VanillaBuilder] [" + event.getInstance().getName() + "] Failed: " + e.getMessage());
-                return;
-            }
+                  Server server;
 
-//            event.getInstance().update();
-        });
-    }
-
-    /**
-     * Called to check if an instance is ready for this builder
-     */
-    @EventHandler
-    public void onReady(ReadyEvent event) {
-        event.setReady(false);
+                  System.out.println("[VanillaBuilder] [" + event.getInstance().getName() + "] Downloading Original Minecraft Server: " + version);
+                  server = getServer(version);
+                  patchServer(server, event.getInstance().getInstanceFolder().resolve(output));
+                  System.out.println("[VanillaBuilder] [" + event.getInstance().getName() + "] Finished: " + server.getPath().getFileName());
+              }
+          });
     }
 
     /**
@@ -237,12 +226,14 @@ public class VanillaBuilder implements Listener {
 
         for (Map.Entry<String, JsonElement> entry : patchVersionManifest.entrySet()) {
             Version version = new Version(entry.getValue().getAsJsonObject().get("id").getAsString());
-            if ((patchVersion == null  || patchVersion.compareTo(version) < 0)
+            if ((patchVersion == null || patchVersion.compareTo(version) < 0)
                     && serverVersion.compareTo(version) >= 0) {
                 patchVersion = version;
                 patchObject = entry.getValue().getAsJsonObject();
             }
-        } if (patchVersion == null) throw new IllegalArgumentException("Could not find patches for " + server.getVersion());
+        }
+        if (patchVersion == null)
+            throw new IllegalArgumentException("Could not find patches for " + server.getVersion());
 
         JsonObject patchProfile = getJson(new URL(patchObject.get("url").getAsString()));
         patchVersion = new Version(patchProfile.get("id").getAsString());
@@ -254,19 +245,30 @@ public class VanillaBuilder implements Listener {
         }
 
         // Copy Original Server to location expected by VanillaCord
-        Files.createDirectory(cacheFolder.resolve("in"));
+        if (!Files.exists(cacheFolder.resolve("in"))) {
+            Files.createDirectory(cacheFolder.resolve("in"));
+        }
+        if (Files.exists(cacheFolder.resolve("in").resolve(server.getVersion() + ".jar"))) {
+            Files.delete(cacheFolder.resolve("in").resolve(server.getVersion() + ".jar"));
+        }
         Files.copy(server.getPath(), cacheFolder.resolve("in").resolve(server.getVersion() + ".jar"));
 
-//        URLOverrideClassLoader loader = new URLOverrideClassLoader(new URL[]{patcherFile.toUri().toURL(), server.getPath().toUri().toURL()});
-//        try {
-//            loader.loadClass(patchProfile.get("launch").getAsString()).getDeclaredMethod("main", String[].class).invoke(null, (Object) new String[]{server.getVersion()});
-//        } catch (Exception e) {
-//            throw new IOException("Failed to patch: " + e.getMessage());
-//        }
+        if (!Files.exists(cacheFolder.resolve("out"))) {
+            Files.createDirectories(cacheFolder.resolve("out"));
+        }
+
+        URLOverrideClassLoader loader = new URLOverrideClassLoader(new URL[]{patcherFile.toUri().toURL(), server.getPath().toUri().toURL()});
+        try {
+            loader.loadClass(patchProfile.get("launch").getAsString()).getDeclaredMethod("main", String[].class).invoke(null, (Object) new String[]{"../plugins/MultiBridge/cache/in/"+server.getVersion()});
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IOException("Failed to patch: " + e.getMessage());
+        }
+
 
 
         // Copy Patched file to our location
-        Files.copy(cacheFolder.resolve("out").resolve(server.getVersion() + "-bungee.jar"), cacheFolder.resolve("vanilla-patched-" + server.getVersion() + ".jar"));
+        Files.copy(cacheFolder.resolve("out").resolve(server.getVersion() + "-bungee.jar"), output);
     }
 
 

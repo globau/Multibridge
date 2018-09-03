@@ -18,10 +18,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -55,6 +52,7 @@ public class Instance implements Listener {
     private boolean bungeeRegistered = false;
     private State state = State.STOPPED;
     private boolean auto = false;
+    private List<Runnable> tasks;
 
     // Tags
     private Map<String,String> tags;
@@ -79,7 +77,7 @@ public class Instance implements Listener {
 
         loadConfig();
 
-        // Handle Auto
+//        // Handle StartMode
 //        switch(getStartMode()) {
 //            case SERVER_START:
 //                manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
@@ -93,33 +91,7 @@ public class Instance implements Listener {
 //                break;
 //            case INSTANCE_JOIN:
 //            case SERVER_JOIN:
-//                autoEnabled = true;
-//                setState(State.AUTO);
-//                break;
-//            case MANUAL:
-//                setState(State.STOPPED);
-//                break;
-//        }
-
-//        // Update State
-//        update();
-//
-//        // Trigger Build Event if in pending state
-//        if (getState() == State.PENDING) {
-//            build();
-//        }
-//
-//        // Auto-start if needed
-//        if (getStartMode() == StartMode.SERVER_START && getState() == State.STOPPED) {
-//            manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
-//                System.out.println("[" + name + "] " + "Auto-Starting: Server Start");
-//                try {
-//                    start();
-//                } catch (IOException e) {
-//                    System.out.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
-//                }
-//            }, getStartDelay(), TimeUnit.SECONDS);
-//
+//                setAuto(true);
 //        }
     }
 
@@ -132,12 +104,12 @@ public class Instance implements Listener {
         manager.getPlugin().getProxy().getPluginManager().unregisterListener(this);
     }
 
-//    /**
-//     * Build instance
-//     */
-//    public void build() {
-//        manager.getPlugin().getProxy().getPluginManager().callEvent(new BuildEvent(this));
-//    }
+    /**
+     * Add Task to run
+     */
+    public void addTask(Runnable task) {
+
+    }
 
     private void loadConfig() {
         Path instanceConfigPath = instanceFolder.resolve("instance.yml");
@@ -156,44 +128,19 @@ public class Instance implements Listener {
         }
     }
 
-//    /**
-//     * Update our State
-//     */
-//    public void update() {
-//        boolean ready = manager.getPlugin().getProxy().getPluginManager().callEvent(new ReadyEvent(this)).getReady();
-//        boolean running = process != null;
-//        StartMode startMode = getStartMode();
-//
-//        if (running) {
-//            state = State.STARTED;
-//        } else {
-//            // Not running
-//
-//            if (ready) {
-//                if (startMode == StartMode.INSTANCE_JOIN) {
-//                    if (!hasRequiredTags()) {
-//                        state = State.ERROR;
-//                    } else {
-//                        if (!bungeeRegistered) {
-//                            System.out.println("[" + name + "]: Registering with BungeeCord");
-//                            registerBungee();
-//                        }
-//                        state = State.WAITING;
-//                    }
-//                } else {
-//                    if (bungeeRegistered) {
-//                        System.out.print("[" + name + "]: Unregistering with BungeeCord");
-//                    }
-//                    state = State.STOPPED;
-//                }
-//            } else {
-//                if (bungeeRegistered) {
-//                    System.out.print("[" + name + "]: Unregistering with BungeeCord");
-//                }
-//                state = State.PENDING;
-//            }
+    /**
+     * Build the Instance
+     */
+    private void build() {
+        State oldState = getState();
+
+        setState(State.BUSY);
+        BuildEvent event = manager.getPlugin().getProxy().getPluginManager().callEvent(new BuildEvent(this));
+
+//        if (!event.isError()) {
+//            setState(oldState);
 //        }
-//    }
+    }
 
     /**
      * Save instanceConfig
@@ -316,16 +263,17 @@ public class Instance implements Listener {
      * Set Auto
      */
     public void setAuto(Boolean auto) {
-        if (auto) {
-            if (getState() == State.STOPPED) {
+        this.auto = auto;
+        updateAuto();
+    }
+
+    private void updateAuto() {
+        if (getState() == State.STOPPED) {
+            if (auto) {
                 registerBungee();
-            }
-            this.auto = true;
-        } else {
-            if (getState() == State.STOPPED) {
+            } else {
                 unregisterBungee();
             }
-            this.auto = false;
         }
     }
 
@@ -347,6 +295,11 @@ public class Instance implements Listener {
                 throw new IOException("Busy Stopping");
             case BUSY:
                 throw new IOException("Instance is Busy");
+        }
+
+        List<String> missingTags = getMissingRequiredTags();
+        if (missingTags.size() > 0) {
+            throw new IOException("Missing required tags: " + String.join(", ", missingTags));
         }
 
         try {
@@ -394,9 +347,7 @@ public class Instance implements Listener {
                 writer = null;
 
                 setState(State.STOPPED);
-                if (!getAuto()) {
-                    unregisterBungee();
-                }
+                updateAuto();
             });
 
             // Wait for Server to respond to a ping
@@ -406,7 +357,14 @@ public class Instance implements Listener {
                 @Override
                 public void run() {
                     Runnable pingRunnable = this;
-                    manager.getPlugin().getProxy().getServers().get(getName()).ping((serverPing, ex) -> {
+
+                    ServerInfo server = manager.getPlugin().getProxy().getServers().get(getName());
+
+                    if (server == null) {
+                        return;
+                    }
+
+                    server.ping((serverPing, ex) -> {
                         if (getState() == State.STARTING) {
                             if (serverPing == null) {
                                 // Failed. Schedule to try again if we are still starting
@@ -483,28 +441,26 @@ public class Instance implements Listener {
                 }
             }
 
-            System.out.println("[" + name + "] " + "Waiting for Instance to shutdown");
-            int maxTime = templateConfig.getInt("stop.delay", 5);
-            while (process != null) {
-                try {
-                    Thread.sleep(1000);
-                    maxTime -= 1;
-                    if (maxTime < 1) {
-                        break;
-                    }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    break;
-                }
-            }
+            // Maximum time to wait
+            Date date = new Date();
+            long graceTime = date.getTime() + templateConfig.getInt("stop.delay", 30);
 
-            // Terminate task if needed
-            if (process != null) {
-                System.err.print("[" + name + "] " + "Murdering Instance");
-                process.destroy();
-            } else {
-                System.out.println("[" + name + "] " + "Instance Cleanly Shut Down");
-            }
+            System.out.println("[" + name + "] " + "Waiting for Instance to shutdown");
+            manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), new Runnable() {
+                @Override
+                public void run() {
+                    if (getState() == State.STOPPING) {
+                        if (date.getTime() < graceTime) {
+                            manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), this, 2, TimeUnit.SECONDS);
+                            return;
+                        }
+                        System.err.print("[" + name + "] " + "Murdering Instance");
+                        process.destroy();
+                        return;
+                    }
+                    System.out.println("[" + name + "] " + "Instance Cleanly Shut Down");
+                }
+            }, 2, TimeUnit.SECONDS);
 
         } catch (Throwable e) {
             setState(State.STOPPED);
@@ -606,31 +562,37 @@ public class Instance implements Listener {
         }
     }
 
-    public void setStartMode(StartMode mode, int delay) {
-        setTag("MB_START_MODE", mode.toString());
-        instanceConfig.setString
+    public void setStartMode(StartMode mode) {
+        instanceConfig.set("auto.start.mode", mode.toString());
+        saveConfig();
     }
 
     /**
      * Return Startup Delay
      */
     public int getStartDelay() {
-        return getTagInt("MB_START_DELAY", 0);
+        return instanceConfig.getInt("auto.start.delay", 0);
     }
 
     public void setStartDelay(int delay) {
-        setTag("MB_START_DELAY", String.valueOf(delay));
+        instanceConfig.set("auto.start.delay", delay);
+        saveConfig();
     }
 
     /**
      * Get Stop Type
      */
     public StopMode getStopMode() {
-        return StopMode.valueOf(getTag("MB_STOP_MODE", "MANUAL").toUpperCase());
+        try {
+            return StopMode.valueOf(instanceConfig.getString("auto.stop.mode", "MANUAL"));
+        } catch (IllegalArgumentException e) {
+            return StopMode.MANUAL;
+        }
     }
 
     public void setStopMode(StopMode mode) {
-        setTag("MB_STOP_MODE", mode.toString());
+        instanceConfig.set("auto.stop.mode", mode);
+        saveConfig();
     }
 
 
@@ -638,21 +600,23 @@ public class Instance implements Listener {
      * Get Stop Delay
      */
     public int getStopDelay() {
-        return getTagInt("MB_STOP_DELAY", 0);
+        return instanceConfig.getInt("auto.stop.delay");
     }
 
     public void setStopDelay(int delay) {
-        setTag("MB_STOP_DELAY", String.valueOf(delay));
+        instanceConfig.set("auto.stop.delay", delay);
+        saveConfig();
     }
 
-    public boolean hasRequiredTags() {
+    public List<String> getMissingRequiredTags() {
         Map<String, String> tags = getTags();
+        List<String> missingTags = new ArrayList<>();
         for(String requiredTag: getRequiredTags()) {
             if (!tags.containsKey(requiredTag)) {
-                return false;
+                missingTags.add(requiredTag);
             }
         }
-        return true;
+        return missingTags;
     }
 
     public Path getInstanceFolder() {

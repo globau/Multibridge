@@ -33,12 +33,13 @@ public class MultiBridge extends Plugin {
         templateManager = new TemplateManager(this);
         instanceManager = new InstanceManager(this);
 
-
         // Register Commands
         getProxy().getPluginManager().registerCommand(this, new MultiBridgeCommand(this));
 
         // Register Listeners
         getProxy().getPluginManager().registerListener(this, new VanillaBuilder(this));
+
+        // Schedule a
 
     }
 

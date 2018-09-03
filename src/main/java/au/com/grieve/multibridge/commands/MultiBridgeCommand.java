@@ -320,12 +320,8 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 return new ComponentBuilder("STOPPING").color(ChatColor.LIGHT_PURPLE).create();
             case STOPPED:
                 return new ComponentBuilder("STOPPED").color(ChatColor.GRAY).create();
-            case WAITING:
-                return new ComponentBuilder("WAITING").color(ChatColor.YELLOW).create();
             case BUSY:
                 return new ComponentBuilder("BUSY").color(ChatColor.YELLOW).create();
-            case ERROR:
-                return new ComponentBuilder("ERROR").color(ChatColor.RED).create();
         }
 
         return new ComponentBuilder("UNKNOWN").color(ChatColor.RED).create();
@@ -487,6 +483,9 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             return;
         }
 
+        // Success
+        sender.sendMessage(new ComponentBuilder("Instance Starting").color(ChatColor.GREEN).create());
+
         // Schedule the task
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
             // Start Instance
@@ -499,7 +498,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             }
 
             // Success
-            sender.sendMessage(new ComponentBuilder("Instance Starting").color(ChatColor.GREEN).create());
+//            sender.sendMessage(new ComponentBuilder("Instance Started").color(ChatColor.GREEN).create());
         });
 
     }
@@ -534,14 +533,15 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         // Schedule the task
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
-            // Start Instance
+            // Stop Instance
+            sender.sendMessage(new ComponentBuilder("Stopping Instance").color(ChatColor.GREEN).create());
             try {
                 instance.stop();
             } catch (IOException ignored) {
             }
 
             // Success
-            sender.sendMessage(new ComponentBuilder("Instance Stopping").color(ChatColor.GREEN).create());
+//            sender.sendMessage(new ComponentBuilder("Instance Stopped").color(ChatColor.GREEN).create());
         });
 
     }
@@ -578,6 +578,18 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 .append("[").color(ChatColor.DARK_GRAY)
                 .append(instanceStateToMessage(instance.getState()))
                 .append("]").color(ChatColor.DARK_GRAY).create());
+
+        sender.sendMessage(new ComponentBuilder("Start:").color(ChatColor.DARK_AQUA).create());
+        sender.sendMessage(new ComponentBuilder("  Mode: ").color(ChatColor.DARK_AQUA)
+                .append(instance.getStartMode().toString()).color(ChatColor.GREEN).create());
+        sender.sendMessage(new ComponentBuilder("  Delay: ").color(ChatColor.DARK_AQUA)
+                .append(String.valueOf(instance.getStartDelay())).color(ChatColor.GREEN).create());
+
+        sender.sendMessage(new ComponentBuilder("Stop:").color(ChatColor.DARK_AQUA).create());
+        sender.sendMessage(new ComponentBuilder("  Mode: ").color(ChatColor.DARK_AQUA)
+                .append(instance.getStopMode().toString()).color(ChatColor.GREEN).create());
+        sender.sendMessage(new ComponentBuilder("  Delay: ").color(ChatColor.DARK_AQUA)
+                .append(String.valueOf(instance.getStopDelay())).color(ChatColor.GREEN).create());
 
         sender.sendMessage("");
 
