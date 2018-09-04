@@ -55,7 +55,6 @@ public class Version implements Serializable, Comparable<Version> {
      * See if Versions are Equal
      *
      * @param version Version to Compare
-     * @return
      */
     public boolean equals(Version version) {
         return compareTo(version) == 0;

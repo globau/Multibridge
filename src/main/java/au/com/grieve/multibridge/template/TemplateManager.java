@@ -1,31 +1,19 @@
 package au.com.grieve.multibridge.template;
 
 import au.com.grieve.multibridge.MultiBridge;
-import net.md_5.bungee.api.plugin.Plugin;
-import net.md_5.bungee.config.Configuration;
-import net.md_5.bungee.config.ConfigurationProvider;
-import net.md_5.bungee.config.YamlConfiguration;
-
-import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 public class TemplateManager {
     private final MultiBridge plugin;
-    private List<TemplateGenerator> templateGenerators = new ArrayList<>();
 
     public TemplateManager(MultiBridge plugin) {
         this.plugin = plugin;
@@ -34,6 +22,7 @@ public class TemplateManager {
     /**
      * Return our Template Folder
      */
+    @SuppressWarnings("WeakerAccess")
     public Path getTemplateFolder() {
         Path path = Paths.get(plugin.getConfig().getString("templatesFolder"));
 
@@ -104,7 +93,7 @@ public class TemplateManager {
                 } else {
                     Files.createDirectories(entryPath.getParent());
                     try (FileOutputStream outputStream = new FileOutputStream(target.resolve(entry.getName()).toFile())) {
-                        int len = 0;
+                        int len;
                         while ((len = zipStream.read(buffer)) > 0) {
                             outputStream.write(buffer, 0, len);
                         }
@@ -119,17 +108,4 @@ public class TemplateManager {
         return getTemplate(name);
     }
 
-    /**
-     * Register a Template Generator
-     */
-    public void registerTemplateGenerator(TemplateGenerator generator) {
-        this.templateGenerators.add(generator);
-    }
-
-    /**
-     * Return a list of Template Generators
-     */
-    public List<TemplateGenerator> getTemplateGenerators() {
-        return templateGenerators;
-    }
 }

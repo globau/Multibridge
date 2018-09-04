@@ -34,10 +34,6 @@ public class VanillaBuilder implements InstanceBuilder {
         this.plugin = plugin;
     }
 
-    public MultiBridge getPlugin() {
-        return this.plugin;
-    }
-
     /**
      * Called when an instance is first built.
      */
@@ -61,6 +57,7 @@ public class VanillaBuilder implements InstanceBuilder {
         JsonObject vanillaManifest = getVanillaManifest(version);
 
 
+        assert vanillaManifest != null;
         Path patchedServerPath = cacheFolder.resolve("vanilla-patched-" + vanillaManifest.get("id").getAsString() + ".server.jar");
 
         // If the patched server does not exist we need to patch vanilla
@@ -121,6 +118,7 @@ public class VanillaBuilder implements InstanceBuilder {
         Version patchVersion = null;
         Version serverVersion = new Version(version);
 
+        assert patchVersionManifest != null;
         for (Map.Entry<String, JsonElement> entry : patchVersionManifest.entrySet()) {
             Version v = new Version(entry.getValue().getAsJsonObject().get("id").getAsString());
             if ((patchVersion == null || patchVersion.compareTo(v) < 0)
@@ -133,6 +131,7 @@ public class VanillaBuilder implements InstanceBuilder {
             throw new IllegalArgumentException("Could not find patches for: " + version);
 
         JsonObject patchProfile = getJson(new URL(patchObject.get("url").getAsString()));
+        assert patchProfile != null;
         patchVersion = new Version(patchProfile.get("id").getAsString());
 
         // Download VanillaCord
@@ -155,11 +154,11 @@ public class VanillaBuilder implements InstanceBuilder {
         builder.directory(workingFolder.toFile());
         Process process = builder.start();
 
-        OutputStream stdin = process.getOutputStream();
+//        OutputStream stdin = process.getOutputStream();
         InputStream stdout = process.getInputStream();
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(stdout))) {
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin));
+//            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin));
             for (String line; ((line = reader.readLine()) != null); ) {
                 System.out.println(line);
             }
@@ -196,7 +195,7 @@ public class VanillaBuilder implements InstanceBuilder {
         sha1 = MessageDigest.getInstance("SHA-1");
         try (InputStream input = Files.newInputStream(path)) {
             byte[] buffer = new byte[8192];
-            int len = 0;
+            int len;
             while ((len = input.read(buffer)) > 0) {
                 sha1.update(buffer, 0, len);
             }

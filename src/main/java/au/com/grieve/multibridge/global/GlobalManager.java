@@ -37,6 +37,7 @@ public class GlobalManager {
         }
     }
 
+    @SuppressWarnings("unused")
     public void reloadConfig() {
         loadConfig();
     }

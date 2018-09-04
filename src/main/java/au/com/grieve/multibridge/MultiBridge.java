@@ -49,6 +49,7 @@ public class MultiBridge extends Plugin {
 
     private void loadConfig() throws IOException {
         if (!getDataFolder().exists()) {
+            //noinspection ResultOfMethodCallIgnored
             getDataFolder().mkdir();
         }
 
@@ -63,13 +64,6 @@ public class MultiBridge extends Plugin {
         Configuration defaults = ConfigurationProvider.getProvider(YamlConfiguration.class).load(getResourceAsStream("config.yml"));
         config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(file, defaults);
 
-
-//        // Defaults
-//        Map<String, String> defaults = new HashMap<String, String>()
-//
-//        if (!config.contains("instancesFolder")) {
-//            config.set("instancesFolder", "live/instances");
-//        }
     }
 
     /**

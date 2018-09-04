@@ -33,6 +33,11 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             this.before = before;
         }
 
+        Arguments shift() {
+            return shift(1);
+        }
+
+        @SuppressWarnings("SameParameterValue")
         Arguments shift(int num) {
             List<String> newBefore = new ArrayList<>();
             if (before != null) {
@@ -71,13 +76,13 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         switch(arguments.args.get(0).toLowerCase()) {
             case "template":
-                subcommandTemplate(sender, arguments.shift(1));
+                subcommandTemplate(sender, arguments.shift());
                 break;
             case "instance":
-                subcommandInstance(sender, arguments.shift(1));
+                subcommandInstance(sender, arguments.shift());
                 break;
             case "global":
-                subcommandGlobal(sender, arguments.shift(1));
+                subcommandGlobal(sender, arguments.shift());
                 break;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
@@ -95,7 +100,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         switch(arguments.args.get(0).toLowerCase()) {
             case "tag":
-                subcommandGlobalTag(sender, arguments.shift(1));
+                subcommandGlobalTag(sender, arguments.shift());
                 return;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
@@ -116,13 +121,13 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         switch(arguments.args.get(0).toLowerCase()) {
             case "set":
-                globalTagSet(sender, arguments.shift(1));
+                globalTagSet(sender, arguments.shift());
                 return;
             case "get":
-                globalTagGet(sender, arguments.shift(1));
+                globalTagGet(sender, arguments.shift());
                 return;
             case "list":
-                globalTagList(sender, arguments.shift(1));
+                globalTagList(sender, arguments.shift());
                 return;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
@@ -142,10 +147,10 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         switch(arguments.args.get(0).toLowerCase()) {
             case "list":
-                templateList(sender, arguments.shift(1));
+                templateList(sender, arguments.shift());
                 return;
             case "download":
-                templateDownload(sender, arguments.shift(1));
+                templateDownload(sender, arguments.shift());
                 break;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
@@ -171,28 +176,28 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         switch(arguments.args.get(0).toLowerCase()) {
             case "create":
-                instanceCreate(sender, arguments.shift(1));
+                instanceCreate(sender, arguments.shift());
                 break;
             case "start":
-                instanceStart(sender, arguments.shift(1));
+                instanceStart(sender, arguments.shift());
                 break;
             case "stop":
-                instanceStop(sender, arguments.shift(1));
+                instanceStop(sender, arguments.shift());
                 break;
             case "remove":
-                instanceRemove(sender, arguments.shift(1));
+                instanceRemove(sender, arguments.shift());
                 break;
             case "list":
-                instanceList(sender, arguments.shift(1));
+                instanceList(sender, arguments.shift());
                 break;
             case "info":
-                instanceInfo(sender, arguments.shift(1));
+                instanceInfo(sender, arguments.shift());
                 break;
             case "tag":
-                subcommandInstanceTag(sender, arguments.shift(1));
+                subcommandInstanceTag(sender, arguments.shift());
                 break;
             case "auto":
-                subcommandInstanceAuto(sender, arguments.shift(1));
+                subcommandInstanceAuto(sender, arguments.shift());
                 break;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
@@ -214,13 +219,13 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         switch(arguments.args.get(0).toLowerCase()) {
             case "set":
-                instanceTagSet(sender, arguments.shift(1));
+                instanceTagSet(sender, arguments.shift());
                 return;
             case "get":
-                instanceTagGet(sender, arguments.shift(1));
+                instanceTagGet(sender, arguments.shift());
                 return;
             case "list":
-                instanceTagList(sender, arguments.shift(1));
+                instanceTagList(sender, arguments.shift());
                 return;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
@@ -242,16 +247,16 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
 
         switch(arguments.args.get(0).toLowerCase()) {
             case "start":
-                instanceAutoStart(sender, arguments.shift(1));
+                instanceAutoStart(sender, arguments.shift());
                 return;
             case "stop":
-                instanceAutoStop(sender, arguments.shift(1));
+                instanceAutoStop(sender, arguments.shift());
                 return;
             case "enable":
-                instanceAutoEnable(sender, arguments.shift(1));
+                instanceAutoEnable(sender, arguments.shift());
                 return;
             case "disable":
-                instanceAutoDisable(sender, arguments.shift(1));
+                instanceAutoDisable(sender, arguments.shift());
                 return;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
@@ -538,12 +543,10 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         instances.values().stream()
                 .skip(10*(page-1))
                 .limit(10)
-                .forEach(s -> {
-                            sender.sendMessage(new ComponentBuilder(" - [").color(ChatColor.DARK_GRAY)
-                                    .append(instanceStateToMessage(s.getState()))
-                                    .append("]").color(ChatColor.DARK_GRAY)
-                                    .append(" " + s.getName()).color(ChatColor.DARK_AQUA).create());
-                });
+                .forEach(s -> sender.sendMessage(new ComponentBuilder(" - [").color(ChatColor.DARK_GRAY)
+                        .append(instanceStateToMessage(s.getState()))
+                        .append("]").color(ChatColor.DARK_GRAY)
+                        .append(" " + s.getName()).color(ChatColor.DARK_AQUA).create()));
     }
 
     /**
@@ -667,15 +670,14 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             // Start Instance
             try {
                 instance.start();
+                sender.sendMessage(new ComponentBuilder("Instance Started").color(ChatColor.GREEN).create());
             } catch (IOException e) {
                 sender.sendMessage(new ComponentBuilder("Unable to start Instance: ").color(ChatColor.RED)
                         .append(e.getMessage()).color(ChatColor.YELLOW).create());
-                return;
             }
-
-            // Success
-//            sender.sendMessage(new ComponentBuilder("Instance Started").color(ChatColor.GREEN).create());
         });
+
+
 
     }
 
@@ -707,18 +709,21 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             return;
         }
 
+        sender.sendMessage(new ComponentBuilder("Stopping Instance").color(ChatColor.GREEN).create());
+
         // Schedule the task
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
             // Stop Instance
-            sender.sendMessage(new ComponentBuilder("Stopping Instance").color(ChatColor.GREEN).create());
             try {
                 instance.stop();
-            } catch (IOException ignored) {
+                sender.sendMessage(new ComponentBuilder("Instance Stopped").color(ChatColor.GREEN).create());
+            } catch (IOException e) {
+                sender.sendMessage(new ComponentBuilder("Failed to Stop Instance: ").color(ChatColor.GREEN)
+                        .append(e.getMessage()).color(ChatColor.YELLOW).create());
             }
-
-            // Success
-//            sender.sendMessage(new ComponentBuilder("Instance Stopped").color(ChatColor.GREEN).create());
         });
+
+
 
     }
 
@@ -770,7 +775,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
         sender.sendMessage(new ComponentBuilder("  Delay: ").color(ChatColor.DARK_AQUA)
                 .append(String.valueOf(instance.getStopDelay())).color(ChatColor.GREEN).create());
 
-        sender.sendMessage("");
+        sender.sendMessage(new ComponentBuilder("").create());
 
         sender.sendMessage(new ComponentBuilder("--- Required Tags ---").color(ChatColor.AQUA).create());
         Map<String, String> tags = instance.getTags();
@@ -994,11 +999,8 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 .sorted(Comparator.comparing(Map.Entry::getKey))
                 .skip((page-1)*10)
                 .limit(10)
-                .forEach( s-> {
-                    sender.sendMessage(new ComponentBuilder(s.getKey() + ": ").color(ChatColor.DARK_AQUA)
-                            .append(s.getValue()).color(ChatColor.GREEN).create());
-
-                });
+                .forEach( s-> sender.sendMessage(new ComponentBuilder(s.getKey() + ": ").color(ChatColor.DARK_AQUA)
+                        .append(s.getValue()).color(ChatColor.GREEN).create()));
     }
 
 }

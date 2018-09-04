@@ -41,6 +41,7 @@ public class InstanceManager {
     /**
      * Return our Instance Folder
      */
+    @SuppressWarnings("WeakerAccess")
     public Path getInstanceFolder() {
         Path path = Paths.get(plugin.getConfig().getString("instancesFolder"));
 
@@ -130,6 +131,7 @@ public class InstanceManager {
 
         // Remove the Directory
         try (Stream<Path> stream = Files.walk(getInstanceFolder().resolve(instance.getName()))) {
+            //noinspection ResultOfMethodCallIgnored
             stream.sorted(Comparator.reverseOrder())
                     .map(Path::toFile)
                     .forEach(File::delete);
@@ -140,7 +142,7 @@ public class InstanceManager {
      * Return a free port
      * @return port
      */
-    public int getPort() throws IndexOutOfBoundsException {
+    int getPort() throws IndexOutOfBoundsException {
         Configuration config = plugin.getConfig();
         Integer portMin = config.getInt("ports.min", 26000);
         Integer portMax = config.getInt("ports.max", 26100);
@@ -157,11 +159,12 @@ public class InstanceManager {
     /**
      * Release used port
      */
-    public void releasePort(int port) {
+    void releasePort(int port) {
         ports.remove(Integer.valueOf(port));
     }
 
     private void deletePath(Path path) throws IOException {
+        //noinspection ResultOfMethodCallIgnored
         Files.walk(path)
                 .sorted(Comparator.reverseOrder())
                 .map(Path::toFile)
@@ -227,7 +230,7 @@ public class InstanceManager {
 
     }
 
-    public MultiBridge getPlugin() {
+    MultiBridge getPlugin() {
         return plugin;
     }
 
@@ -235,7 +238,12 @@ public class InstanceManager {
         this.instanceBuilders.add(builder);
     }
 
-    public List<InstanceBuilder> getInstanceBuilders() {
+    @SuppressWarnings("unused")
+    public void unregisterBuilder(InstanceBuilder builder) {
+        this.instanceBuilders.remove(builder);
+    }
+
+    private List<InstanceBuilder> getInstanceBuilders() {
         return this.instanceBuilders;
     }
 

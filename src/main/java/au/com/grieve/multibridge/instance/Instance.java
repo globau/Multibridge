@@ -1,7 +1,5 @@
 package au.com.grieve.multibridge.instance;
 
-import au.com.grieve.multibridge.api.event.BuildEvent;
-import au.com.grieve.multibridge.api.event.ReadyEvent;
 import au.com.grieve.multibridge.util.SimpleTemplate;
 import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
@@ -52,15 +50,12 @@ public class Instance implements Listener {
     private boolean bungeeRegistered = false;
     private State state = State.STOPPED;
 
-    // Tags
-    private Map<String,String> tags;
-
     // Async IO
     private Process process;
     private BufferedReader reader;
     private BufferedWriter writer;
 
-    public Instance(InstanceManager manager, Path instanceFolder) throws InstantiationException {
+    Instance(InstanceManager manager, Path instanceFolder) throws InstantiationException {
         this.manager = manager;
         this.instanceFolder = instanceFolder;
         this.name = instanceFolder.getFileName().toString();
@@ -95,7 +90,7 @@ public class Instance implements Listener {
     /**
      * Cleanup Instance before destroying
      */
-    public void cleanUp() {
+    void cleanUp() {
 
         // Unregister ourself as a Listener
         manager.getPlugin().getProxy().getPluginManager().unregisterListener(this);
@@ -128,16 +123,13 @@ public class Instance implements Listener {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        // Clear tags cache
-        tags = null;
     }
 
     /**
      * Return Tags set on this Instance
      */
     public Map<String, String> getLocalTags() {
-        tags = new HashMap<>();
+        Map<String, String> tags = new HashMap<>();
         // Add Instance Settings
         if (instanceConfig.contains("tags")) {
             for (String k : instanceConfig.getSection("tags").getKeys()) {
@@ -158,33 +150,24 @@ public class Instance implements Listener {
      * Get effective tag on this instance
      */
     public Map<String, String> getTags() {
-        return getTags(true);
-    }
+        Map<String, String> tags = new HashMap<>();
 
-    /**
-     * Get effective tags for this instance
-     */
-    public Map<String, String> getTags(boolean refresh) {
-        if (tags == null || refresh) {
-            tags = new HashMap<>();
-
-            // Add Defaults from Template
-            if (templateConfig.contains("tags.defaults")) {
-                for (String k : templateConfig.getSection("tags.defaults").getKeys()) {
-                    tags.put(k.toUpperCase(), templateConfig.getSection("tags.defaults").getString(k));
-                }
+        // Add Defaults from Template
+        if (templateConfig.contains("tags.defaults")) {
+            for (String k : templateConfig.getSection("tags.defaults").getKeys()) {
+                tags.put(k.toUpperCase(), templateConfig.getSection("tags.defaults").getString(k));
             }
+        }
 
-            // Add Globals. Overrides above
-            for (Map.Entry<String, String> e : manager.getPlugin().getGlobalManager().getTags().entrySet()) {
-                tags.put(e.getKey(), e.getValue());
-            }
+        // Add Globals. Overrides above
+        for (Map.Entry<String, String> e : manager.getPlugin().getGlobalManager().getTags().entrySet()) {
+            tags.put(e.getKey(), e.getValue());
+        }
 
-            // Add Instance Settings
-            if (instanceConfig.contains("tags")) {
-                for (String k : instanceConfig.getSection("tags").getKeys()) {
-                    tags.put(k.toUpperCase(), instanceConfig.getSection("tags").getString(k));
-                }
+        // Add Instance Settings
+        if (instanceConfig.contains("tags")) {
+            for (String k : instanceConfig.getSection("tags").getKeys()) {
+                tags.put(k.toUpperCase(), instanceConfig.getSection("tags").getString(k));
             }
         }
 
@@ -224,7 +207,7 @@ public class Instance implements Listener {
     /**
      * Unregister with Bungeecord
      */
-    void unregisterBungee() {
+    private void unregisterBungee() {
         if (!bungeeRegistered) {
             return;
         }
@@ -479,6 +462,7 @@ public class Instance implements Listener {
     /**
      * Remove Instance
      */
+    @SuppressWarnings("unused")
     public Integer getPort() {
         return port;
     }
@@ -490,14 +474,17 @@ public class Instance implements Listener {
     /**
      * Get Tag
      */
+    @SuppressWarnings({"WeakerAccess", "unused"})
     public String getTag(String key) {
         return getTag(key, null);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public String getTag(String key, String def) {
         return getTags().getOrDefault(key, def);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public int getTagInt(String key, int def) {
         try {
             return Integer.parseInt(getTag(key, String.valueOf(def)));
@@ -506,14 +493,17 @@ public class Instance implements Listener {
         }
     }
 
+    @SuppressWarnings({"WeakerAccess", "unused"})
     public int getTagInt(String key) {
         return getTagInt(key, 0);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public boolean getTagBoolean(String key) {
         return getTagBoolean(key, false);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public boolean getTagBoolean(String key, boolean def) {
         return Boolean.parseBoolean(getTag(key, String.valueOf(def)));
     }
@@ -585,7 +575,7 @@ public class Instance implements Listener {
         saveConfig();
     }
 
-    public List<String> getMissingRequiredTags() {
+    private List<String> getMissingRequiredTags() {
         Map<String, String> tags = getTags();
         List<String> missingTags = new ArrayList<>();
         for(String requiredTag: getRequiredTags()) {
@@ -607,10 +597,11 @@ public class Instance implements Listener {
        return state;
     }
 
-    public void setState(State state) {
+    private void setState(State state) {
         this.state = state;
     }
 
+    @SuppressWarnings("unused")
     public Configuration getInstanceConfig() {
         return instanceConfig;
     }
