@@ -2,8 +2,6 @@ package au.com.grieve.multibridge.instance;
 
 import au.com.grieve.multibridge.MultiBridge;
 import au.com.grieve.multibridge.template.Template;
-import au.com.grieve.multibridge.template.TemplateManager;
-import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
@@ -15,11 +13,12 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
 
-public class InstanceManager implements Listener {
+public class InstanceManager {
     private final MultiBridge plugin;
 
     private Map<String, Instance> instances = new HashMap<>();
     private List<Integer> ports = new ArrayList<>();
+    private List<InstanceBuilder> instanceBuilders = new ArrayList<>();
 
     public InstanceManager(MultiBridge plugin) {
         this.plugin = plugin;
@@ -32,13 +31,17 @@ public class InstanceManager implements Listener {
      */
     public void stopAll() {
         for (Instance instance: instances.values()) {
-            instance.stopNow();
+            try {
+                instance.stop();
+            } catch (IOException ignored) {
+            }
         }
     }
 
     /**
      * Return our Instance Folder
      */
+    @SuppressWarnings("WeakerAccess")
     public Path getInstanceFolder() {
         Path path = Paths.get(plugin.getConfig().getString("instancesFolder"));
 
@@ -53,6 +56,12 @@ public class InstanceManager implements Listener {
         Map<String, Instance> old = instances;
         instances = new HashMap<>();
 
+        try {
+            Files.createDirectories(getInstanceFolder());
+        } catch (IOException e) {
+            return;
+        }
+
         try (Stream<Path> paths = Files.list(getInstanceFolder())) {
             paths
                     .filter(Files::isDirectory)
@@ -64,10 +73,6 @@ public class InstanceManager implements Listener {
                             if (!plugin.getProxy().getServers().containsKey(name)) {
                                 try {
                                     Instance instance = new Instance(this, p);
-
-                                    // Register as a Listener
-                                    plugin.getProxy().getPluginManager().registerListener(plugin,this);
-
                                     instances.put(instance.getName(), instance);
                                 } catch (InstantiationException e) {
                                     e.printStackTrace();
@@ -87,7 +92,10 @@ public class InstanceManager implements Listener {
             for (Instance instance: old.values()) {
                 if (instance.isRunning()) {
                     plugin.getProxy().getPluginManager().unregisterListener(instance);
-                    instance.stopNow();
+                    try {
+                        instance.stop();
+                    } catch (IOException ignored) {
+                    }
                 }
             }
         });
@@ -118,24 +126,23 @@ public class InstanceManager implements Listener {
         assert(instance != null);
         assert(!instance.isRunning());
 
+        instance.cleanUp();
+        instances.remove(instance.getName());
+
         // Remove the Directory
         try (Stream<Path> stream = Files.walk(getInstanceFolder().resolve(instance.getName()))) {
+            //noinspection ResultOfMethodCallIgnored
             stream.sorted(Comparator.reverseOrder())
                     .map(Path::toFile)
                     .forEach(File::delete);
         }
-
-        instance.unregisterBungee();
-
-        instances.remove(instance.getName());
-        plugin.getProxy().getPluginManager().unregisterListener(instance);
     }
 
     /**
      * Return a free port
      * @return port
      */
-    public int getPort() throws IndexOutOfBoundsException {
+    int getPort() throws IndexOutOfBoundsException {
         Configuration config = plugin.getConfig();
         Integer portMin = config.getInt("ports.min", 26000);
         Integer portMax = config.getInt("ports.max", 26100);
@@ -152,75 +159,92 @@ public class InstanceManager implements Listener {
     /**
      * Release used port
      */
-    public void releasePort(int port) {
+    void releasePort(int port) {
         ports.remove(Integer.valueOf(port));
     }
 
-    public Instance create(String templateName, String instanceName) {
-        Template template = plugin.getTemplateManager().getTemplate(templateName);
-
-        // Does Template Exist?
-        if (template == null) {
-            return null;
-        }
-
-        // Does Instance Already exist?
-        if (getInstance(instanceName) != null) {
-            return null;
-        }
-
-        // Can't create same name as a bungee server
-        if (plugin.getProxy().getServers().containsKey(instanceName)) {
-            return null;
-        }
-
-        Path target = getInstanceFolder().resolve(instanceName);
-
-        // Make sure parent folder exists
-        if (!Files.exists(target.getParent())) {
-            try {
-                Files.createDirectories(target.getParent());
-            } catch (IOException e) {
-                return null;
-            }
-        }
-
-        // Copy Template to Instance
-        try (Stream<Path> stream = Files.walk(template.getTemplateFolder())) {
-            stream.forEach(sourcePath -> {
-                try {
-                    Files.copy(
-                            sourcePath,
-                            target.resolve(template.getTemplateFolder().relativize(sourcePath)));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // Create new Instance Config
-        Configuration instanceConfig = new Configuration();
-        try {
-            ConfigurationProvider.getProvider(YamlConfiguration.class).save(instanceConfig, target.resolve("instance.yml").toFile());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            Instance instance = new Instance(this, target);
-            instance.setTag("MB_TEMPLATE_NAME", templateName);
-            instances.put(instanceName, instance);
-            return instance;
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        }
-        return null;
+    private void deletePath(Path path) throws IOException {
+        //noinspection ResultOfMethodCallIgnored
+        Files.walk(path)
+                .sorted(Comparator.reverseOrder())
+                .map(Path::toFile)
+                .forEach(File::delete);
     }
 
-    public MultiBridge getPlugin() {
+    public Instance create(String templateName, String instanceName) throws IOException {
+        Template template = plugin.getTemplateManager().getTemplate(templateName);
+
+        // We always want to delete the folder if we have an exception
+        try {
+
+            // Does Template Exist?
+            if (template == null) {
+                throw new IOException("Template does not exist");
+            }
+
+            // Does Instance Already exist?
+            if (getInstance(instanceName) != null) {
+                throw new IOException("Instance already exists");
+            }
+
+            // Can't create same name as a bungee server
+            if (plugin.getProxy().getServers().containsKey(instanceName)) {
+                throw new IOException("An existing Bungee server already exists with that name");
+            }
+
+            Path target = getInstanceFolder().resolve(instanceName);
+
+            // Make sure parent folder exists
+            if (!Files.exists(target.getParent())) {
+                Files.createDirectories(target.getParent());
+            }
+
+            // Copy Template to Instance
+            for (Path p : (Iterable<Path>) Files.walk(template.getTemplateFolder())::iterator) {
+                Files.copy(
+                        p,
+                        target.resolve(template.getTemplateFolder().relativize(p)));
+            }
+
+            // Create new Instance Config
+            Configuration instanceConfig = new Configuration();
+            ConfigurationProvider.getProvider(YamlConfiguration.class).save(instanceConfig, target.resolve("instance.yml").toFile());
+
+            Instance instance = new Instance(this, target);
+            instance.setTag("MB_TEMPLATE_NAME", templateName);
+
+            // Execute Builders
+            for(InstanceBuilder instanceBuilder : getInstanceBuilders()) {
+                instanceBuilder.build(instance);
+            }
+
+            instances.put(instanceName, instance);
+            return instance;
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+            deletePath(getInstanceFolder());
+            throw new IOException(e.getMessage());
+        }
+
+
+    }
+
+    MultiBridge getPlugin() {
         return plugin;
+    }
+
+    public void registerBuilder(InstanceBuilder builder) {
+        this.instanceBuilders.add(builder);
+    }
+
+    @SuppressWarnings("unused")
+    public void unregisterBuilder(InstanceBuilder builder) {
+        this.instanceBuilders.remove(builder);
+    }
+
+    private List<InstanceBuilder> getInstanceBuilders() {
+        return this.instanceBuilders;
     }
 
 }

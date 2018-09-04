@@ -1,5 +1,6 @@
 package au.com.grieve.multibridge;
 
+import au.com.grieve.multibridge.plugins.Vanilla.VanillaBuilder;
 import au.com.grieve.multibridge.commands.MultiBridgeCommand;
 import au.com.grieve.multibridge.global.GlobalManager;
 import au.com.grieve.multibridge.instance.InstanceManager;
@@ -32,9 +33,11 @@ public class MultiBridge extends Plugin {
         templateManager = new TemplateManager(this);
         instanceManager = new InstanceManager(this);
 
-
         // Register Commands
         getProxy().getPluginManager().registerCommand(this, new MultiBridgeCommand(this));
+
+        // Register Plugins
+        instanceManager.registerBuilder(new VanillaBuilder(this));
 
     }
 
@@ -46,6 +49,7 @@ public class MultiBridge extends Plugin {
 
     private void loadConfig() throws IOException {
         if (!getDataFolder().exists()) {
+            //noinspection ResultOfMethodCallIgnored
             getDataFolder().mkdir();
         }
 
@@ -60,13 +64,6 @@ public class MultiBridge extends Plugin {
         Configuration defaults = ConfigurationProvider.getProvider(YamlConfiguration.class).load(getResourceAsStream("config.yml"));
         config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(file, defaults);
 
-
-//        // Defaults
-//        Map<String, String> defaults = new HashMap<String, String>()
-//
-//        if (!config.contains("instancesFolder")) {
-//            config.set("instancesFolder", "live/instances");
-//        }
     }
 
     /**
