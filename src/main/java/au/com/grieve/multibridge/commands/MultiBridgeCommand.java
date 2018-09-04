@@ -133,6 +133,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             sender.sendMessage(new ComponentBuilder("--- [ Template Help ] ---").color(ChatColor.AQUA).create());
             sender.sendMessage(new ComponentBuilder("/mb template").color(ChatColor.RED).append(" list").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb template").color(ChatColor.RED).append(" download").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb template").color(ChatColor.RED).append(" generate").color(ChatColor.YELLOW).create());
             return;
         }
 
@@ -143,6 +144,25 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             case "download":
                 templateDownload(sender, arguments.shift(1));
                 break;
+            case "generate":
+                subcommandTemplateGenerate(sender, arguments.shift(1));
+            default:
+                sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
+                break;
+        }
+    }
+
+    private void subcommandTemplateGenerate(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Template Generate Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb template generate").color(ChatColor.RED).append(" list").color(ChatColor.YELLOW).create());
+            return;
+        }
+
+        switch(arguments.args.get(0).toLowerCase()) {
+            case "list":
+                templateGenerateList(sender, arguments.shift(1));
+                return;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
                 break;
@@ -254,6 +274,41 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
                 break;
         }
+
+    }
+
+    /**
+     * Template Generate List
+     */
+    private void templateGenerateList(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() > 0 && arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Template Generate List Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("List Template Generators").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb template generate list").color(ChatColor.RED).append(" [<page>]").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("/mb template generate list").create());
+            sender.sendMessage(new ComponentBuilder("/mb template generate list").color(ChatColor.RED).append(" 2").create());
+            return;
+        }
+
+        int page = 1;
+        if (arguments.args.size() > 0) {
+            try {
+                page = Math.max(1,Integer.parseInt(arguments.args.get(0)));
+            } catch (NumberFormatException e) {
+                sender.sendMessage(new ComponentBuilder("Invalid Page Number").color(ChatColor.RED).create());
+                return;
+            }
+        }
+
+        sender.sendMessage(new ComponentBuilder("--- Template Generators ---").color(ChatColor.AQUA).create());
+
+        plugin.getTemplateManager().getTemplateGenerators().stream()
+                .sorted()
+                .skip(10*(page-1))
+                .limit(10)
+                .forEach(s -> sender.sendMessage(new ComponentBuilder(s.getName() + ": ").color(ChatColor.DARK_AQUA)
+                        .append(s.getDescription()).color(ChatColor.GREEN).create()));
 
     }
 

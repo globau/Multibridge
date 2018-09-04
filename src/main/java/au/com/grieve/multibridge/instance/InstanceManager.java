@@ -21,6 +21,7 @@ public class InstanceManager {
 
     private Map<String, Instance> instances = new HashMap<>();
     private List<Integer> ports = new ArrayList<>();
+    private List<InstanceBuilder> instanceBuilders = new ArrayList<>();
 
     public InstanceManager(MultiBridge plugin) {
         this.plugin = plugin;
@@ -213,8 +214,8 @@ public class InstanceManager {
             instance.setTag("MB_TEMPLATE_NAME", templateName);
 
             // Execute Builders
-            for(Task task : plugin.getProxy().getPluginManager().callEvent(new BuildEvent(instance)).getTasks()) {
-                task.execute();
+            for(InstanceBuilder instanceBuilder : getInstanceBuilders()) {
+                instanceBuilder.build(instance);
             }
 
             instances.put(instanceName, instance);
@@ -231,6 +232,14 @@ public class InstanceManager {
 
     public MultiBridge getPlugin() {
         return plugin;
+    }
+
+    public void registerBuilder(InstanceBuilder builder) {
+        this.instanceBuilders.add(builder);
+    }
+
+    public List<InstanceBuilder> getInstanceBuilders() {
+        return this.instanceBuilders;
     }
 
 }

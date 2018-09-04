@@ -1,22 +1,17 @@
 package au.com.grieve.multibridge.builder.Vanilla;
 
 /*
- * Please note that the Vanilla Patching code here came mostly from VanillaCord GitHub respository of ME1312 who forked it from maximvarentsov
- * who forked it from Thinkofname. As there was no easy way to use the code as a library I've re-written it slightly for this plugin but
- * wanted to give due credit.
+ * Makes use of VanillaCord
  *
  * https://github.com/ME1312/VanillaCord
  */
 
 import au.com.grieve.multibridge.MultiBridge;
-import au.com.grieve.multibridge.api.event.BuildEvent;
-import au.com.grieve.multibridge.builder.Vanilla.util.URLOverrideClassLoader;
 import au.com.grieve.multibridge.builder.Vanilla.util.Version;
-import au.com.grieve.multibridge.util.Task;
+import au.com.grieve.multibridge.instance.Instance;
+import au.com.grieve.multibridge.instance.InstanceBuilder;
 import com.google.gson.*;
-import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.config.Configuration;
-import net.md_5.bungee.event.EventHandler;
 
 import java.io.*;
 import java.net.URL;
@@ -31,7 +26,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.Map;
 
-public class VanillaBuilder implements Listener {
+public class VanillaBuilder implements InstanceBuilder {
 
     private final MultiBridge plugin;
 
@@ -39,198 +34,140 @@ public class VanillaBuilder implements Listener {
         this.plugin = plugin;
     }
 
-    // Server Definition
-    private class Server {
-        private final String version;
-        private final Path path;
-
-        public Server(String version, Path path) {
-            this.version = version;
-            this.path = path;
-        }
-
-        public String getVersion() {
-            return version;
-        }
-
-        public Path getPath() {
-            return path;
-        }
+    public MultiBridge getPlugin() {
+        return this.plugin;
     }
-
 
     /**
      * Called when an instance is first built.
      */
-    @EventHandler
-    public void onBuild(BuildEvent event) {
-        event.addTask(new Task() {
-            private Path workingFolder;
-            private Path cacheFolder;
-            private Configuration config;
+    public void build(Instance instance) throws IOException {
+        Configuration config = instance.getTemplateConfig();
 
-            @Override
-            public void execute() throws IOException {
-                config = event.getInstance().getTemplateConfig();
+        if (!config.contains("build.vanilla")) {
+            return;
+        }
 
-                if (!config.contains("build.vanilla")) {
-                    return;
+        String version = config.getString("build.vanilla.version", "latest");
+        String output = config.getString("build.vanilla.output", "server.jar");
+
+
+        Path cacheFolder = plugin.getDataFolder().toPath().resolve("cache");
+        Path workingFolder = cacheFolder.resolve("temp-" + String.valueOf(new Date().getTime()));
+        Files.createDirectories(workingFolder);
+
+
+        System.out.println("[VanillaBuilder] [" + instance.getName() + "] Loading Vanilla Manifest for: " + version);
+        JsonObject vanillaManifest = getVanillaManifest(version);
+
+
+        Path patchedServerPath = cacheFolder.resolve("vanilla-patched-" + vanillaManifest.get("id").getAsString() + ".server.jar");
+
+        // If the patched server does not exist we need to patch vanilla
+        if (!Files.exists(patchedServerPath)) {
+            Path vanillaServerPath = cacheFolder.resolve("original-" + vanillaManifest.get("id").getAsString() + ".server.jar");
+
+            // If vanillaServer does not exist we download it first
+            try {
+                if (!Files.exists(vanillaServerPath) || sha1(vanillaServerPath).equals(vanillaManifest.get("sha1").getAsString())) {
+                    System.out.println("[VanillaBuilder] [" + instance.getName() + "] Downloading Vanilla Server");
+                    downloadFile(new URL(vanillaManifest.getAsJsonObject("downloads").getAsJsonObject("server").get("url").getAsString()), vanillaServerPath);
                 }
-
-                cacheFolder = plugin.getDataFolder().toPath().resolve("cache");
-                workingFolder = cacheFolder.resolve("temp-" + String.valueOf(new Date().getTime()));
-
-                Files.createDirectories(workingFolder);
-
-                String version = config.getString("build.vanilla.version", "latest");
-                String output = config.getString("build.vanilla.output", "server.jar");
-
-                Server server;
-
-                System.out.println("[VanillaBuilder] [" + event.getInstance().getName() + "] Downloading Original Minecraft Server: " + version);
-                server = getServer(version);
-                Path patchedFile = patchServer(server);
-
-                // Copy file to output
-                Files.copy(patchedFile, event.getInstance().getInstanceFolder().resolve(output));
-                System.out.println("[VanillaBuilder] [" + event.getInstance().getName() + "] Finished: " + server.getPath().getFileName());
+            } catch (NoSuchAlgorithmException e) {
+                throw new IOException("Can't find SHA1 algorithm");
             }
 
-            /**
-             * Download Minecraft Server to cache
-             */
-            private Server getServer(String version) throws IOException {
-                // Get Manifest
-                JsonObject manifest = getManifest(version);
+            // Patch vanilla
+            patchServer(cacheFolder, workingFolder, version, vanillaServerPath, patchedServerPath);
+        }
 
-                if (manifest == null) {
-                    throw new IOException("Could not find server version for: " + version);
-                }
 
-                JsonObject server = manifest.get("downloads").getAsJsonObject().get("server").getAsJsonObject();
+        // Copy file to output
+        Files.copy(patchedServerPath, instance.getInstanceFolder().resolve(output));
+        System.out.println("[VanillaBuilder] [" + instance.getName() + "] Finished");
+    }
 
-                Path serverFile = cacheFolder.resolve("original-" + manifest.get("id").getAsString() + ".server.jar");
+    /**
+     * Get Vanilla Server Manifest
+     */
+    private JsonObject getVanillaManifest(String version) throws IOException {
+        JsonObject versionManifest = getJson(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json"));
 
-                // Does serverFile exists and its SHA1 matches? We can stop.
-                try {
-                    if (Files.exists(serverFile) && sha1(serverFile).equals(server.get("sha1").getAsString())) {
-                        return new Server(manifest.get("id").getAsString(), serverFile);
-                    }
-                } catch (NoSuchAlgorithmException e) {
-                    throw new IOException("Can't find SHA1 algorithm");
-                }
+        if (versionManifest == null) {
+            throw new IOException("Unable to load Version Manifest");
+        }
 
-                // Download the file
-                Path tempServerFile = workingFolder.resolve("original-" + manifest.get("id").getAsString() + ".server.jar");
-                downloadFile(new URL(server.get("url").getAsString()), tempServerFile);
-                Files.move(tempServerFile, serverFile);
+        if (version.equalsIgnoreCase("latest")) {
+            version = versionManifest.getAsJsonObject("latest").get("release").getAsString();
+        }
 
-                return new Server(manifest.get("id").getAsString(), serverFile);
+        for (JsonElement element : versionManifest.getAsJsonArray("versions")) {
+            JsonObject v = element.getAsJsonObject();
+            if (v.get("id").getAsString().equalsIgnoreCase(version)) {
+                return getJson(new URL(v.get("url").getAsString()));
             }
+        }
 
-            /**
-             * Return the Manifest for the server version
-             * @param version Version of Minecraft, can be 'latest'
-             */
-            private JsonObject getManifest(String version) {
-                JsonObject versionManifest;
-                try {
-                    versionManifest = getJson(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json"));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    return null;
-                }
+        return null;
+    }
 
-                JsonObject latest = versionManifest.get("latest").getAsJsonObject();
-                JsonArray versions = versionManifest.get("versions").getAsJsonArray();
+    /**
+     * Patch the Vanilla File to work behind BungeeCord.
+     */
+    private void patchServer(Path cacheFolder, Path workingFolder, String version, Path input, Path output) throws IOException, IllegalArgumentException {
+        JsonObject patchVersionManifest = getJson(new URL("https://raw.githubusercontent.com/ME1312/VanillaCord/master/version_manifest.json"));
 
-                if (version.equalsIgnoreCase("latest")) {
-                    version = latest.get("release").getAsString();
-                }
+        JsonObject patchObject = null;
+        Version patchVersion = null;
+        Version serverVersion = new Version(version);
 
-                for (JsonElement element : versions) {
-                    JsonObject v = element.getAsJsonObject();
-                    if (v.get("id").getAsString().equalsIgnoreCase(version)) {
-                        try {
-                            return getJson(new URL(v.get("url").getAsString()));
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            return null;
-                        }
-                    }
-                }
-
-                return null;
+        for (Map.Entry<String, JsonElement> entry : patchVersionManifest.entrySet()) {
+            Version v = new Version(entry.getValue().getAsJsonObject().get("id").getAsString());
+            if ((patchVersion == null || patchVersion.compareTo(v) < 0)
+                    && serverVersion.compareTo(v) >= 0) {
+                patchVersion = v;
+                patchObject = entry.getValue().getAsJsonObject();
             }
+        }
+        if (patchVersion == null)
+            throw new IllegalArgumentException("Could not find patches for: " + version);
 
-            /**
-             * Patch the Vanilla File to work behind BungeeCord.
-             */
-            private Path patchServer(Server server) throws IOException, IllegalArgumentException {
-                Path patchedFile = cacheFolder.resolve("vanilla-patched-" + server.getVersion() + ".server.jar");
-                if (Files.exists(patchedFile)) {
-                    return patchedFile;
-                }
+        JsonObject patchProfile = getJson(new URL(patchObject.get("url").getAsString()));
+        patchVersion = new Version(patchProfile.get("id").getAsString());
 
-                JsonObject patchVersionManifest = getJson(new URL("https://raw.githubusercontent.com/ME1312/VanillaCord/master/version_manifest.json"));
-                if (patchVersionManifest == null) {
-                    throw new IOException("Unable to downoad Patch Version Manifest");
-                }
+        // Download VanillaCord
+        Path patcherFile = cacheFolder.resolve("vanillacord-" + patchVersion + ".jar");
+        if (!Files.exists(patcherFile)) {
+            Path tempPatcherFile = workingFolder.resolve("vanillacord-" + patchVersion + ".jar");
+            downloadFile(new URL(patchProfile.getAsJsonObject("download").get("url").getAsString()), tempPatcherFile);
+            Files.move(tempPatcherFile, patcherFile);
+        }
 
-                JsonObject patchObject = null;
-                Version patchVersion = null;
-                Version serverVersion = new Version(server.getVersion());
+        // Copy Original Server to location expected by VanillaCord
+        Files.createDirectory(workingFolder.resolve("in"));
+        Files.createDirectory(workingFolder.resolve("out"));
+        Files.copy(patcherFile, workingFolder.resolve("vanillacord.jar"));
+        Files.copy(input, workingFolder.resolve("in").resolve(version + ".jar"));
 
-                for (Map.Entry<String, JsonElement> entry : patchVersionManifest.entrySet()) {
-                    Version version = new Version(entry.getValue().getAsJsonObject().get("id").getAsString());
-                    if ((patchVersion == null || patchVersion.compareTo(version) < 0)
-                            && serverVersion.compareTo(version) >= 0) {
-                        patchVersion = version;
-                        patchObject = entry.getValue().getAsJsonObject();
-                    }
-                }
-                if (patchVersion == null)
-                    throw new IllegalArgumentException("Could not find patches for " + server.getVersion());
+        // Execute
+        ProcessBuilder builder = new ProcessBuilder("java", "-jar", "vanillacord.jar", version);
+        builder.redirectErrorStream(true);
+        builder.directory(workingFolder.toFile());
+        Process process = builder.start();
 
-                JsonObject patchProfile = getJson(new URL(patchObject.get("url").getAsString()));
-                patchVersion = new Version(patchProfile.get("id").getAsString());
+        OutputStream stdin = process.getOutputStream();
+        InputStream stdout = process.getInputStream();
 
-                // Download VanillaCord
-                Path patcherFile = cacheFolder.resolve("vanillacord-" + patchVersion + ".jar");
-                if (!Files.exists(patcherFile)) {
-                    Path tempPatcherFile = workingFolder.resolve("vanillacord-" + patchVersion + ".jar");
-                    downloadFile(new URL(patchProfile.getAsJsonObject("download").get("url").getAsString()), tempPatcherFile);
-                    Files.move(tempPatcherFile, patcherFile);
-                }
-
-                // Copy Original Server to location expected by VanillaCord
-                Files.createDirectory(workingFolder.resolve("in"));
-                Files.createDirectory(workingFolder.resolve("out"));
-                Files.copy(patcherFile, workingFolder.resolve("vanillacord.jar"));
-                Files.copy(server.getPath(), workingFolder.resolve("in").resolve(server.getVersion() + ".jar"));
-
-                // Execute
-                ProcessBuilder builder = new ProcessBuilder("java", "-jar", "vanillacord.jar", server.getVersion());
-                builder.redirectErrorStream(true);
-                builder.directory(workingFolder.toFile());
-                Process process = builder.start();
-
-                OutputStream stdin = process.getOutputStream();
-                InputStream stdout = process.getInputStream();
-
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(stdout))) {
-                    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin));
-                    for (String line; ((line = reader.readLine()) != null); ) {
-                        System.out.println(line);
-                    }
-                } catch (IOException ignored) {
-                }
-
-                // Copy Patched file to our location
-                Files.copy(workingFolder.resolve("out").resolve(server.getVersion() + "-bungee.jar"), patchedFile);
-                return patchedFile;
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stdout))) {
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin));
+            for (String line; ((line = reader.readLine()) != null); ) {
+                System.out.println(line);
             }
-        });
+        } catch (IOException ignored) {
+        }
+
+        // Copy Patched file to output
+        Files.copy(workingFolder.resolve("out").resolve(version + "-bungee.jar"), output);
     }
 
     /**

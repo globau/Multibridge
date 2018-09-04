@@ -36,10 +36,8 @@ public class MultiBridge extends Plugin {
         // Register Commands
         getProxy().getPluginManager().registerCommand(this, new MultiBridgeCommand(this));
 
-        // Register Listeners
-        getProxy().getPluginManager().registerListener(this, new VanillaBuilder(this));
-
-        // Schedule a
+        // Register Plugins
+        instanceManager.registerBuilder(new VanillaBuilder(this));
 
     }
 

@@ -25,6 +25,7 @@ import java.util.zip.ZipInputStream;
 
 public class TemplateManager {
     private final MultiBridge plugin;
+    private List<TemplateGenerator> templateGenerators = new ArrayList<>();
 
     public TemplateManager(MultiBridge plugin) {
         this.plugin = plugin;
@@ -116,5 +117,19 @@ public class TemplateManager {
         }
 
         return getTemplate(name);
+    }
+
+    /**
+     * Register a Template Generator
+     */
+    public void registerTemplateGenerator(TemplateGenerator generator) {
+        this.templateGenerators.add(generator);
+    }
+
+    /**
+     * Return a list of Template Generators
+     */
+    public List<TemplateGenerator> getTemplateGenerators() {
+        return templateGenerators;
     }
 }
