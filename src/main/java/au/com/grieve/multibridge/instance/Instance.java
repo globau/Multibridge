@@ -101,13 +101,6 @@ public class Instance implements Listener {
         manager.getPlugin().getProxy().getPluginManager().unregisterListener(this);
     }
 
-    /**
-     * Add Task to run
-     */
-    public void addTask(Runnable task) {
-
-    }
-
     private void loadConfig() {
         Path instanceConfigPath = instanceFolder.resolve("instance.yml");
         Path templateConfigPath = instanceFolder.resolve("template.yml");

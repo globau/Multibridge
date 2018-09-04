@@ -1,6 +1,6 @@
 package au.com.grieve.multibridge;
 
-import au.com.grieve.multibridge.builder.Vanilla.VanillaBuilder;
+import au.com.grieve.multibridge.plugins.Vanilla.VanillaBuilder;
 import au.com.grieve.multibridge.commands.MultiBridgeCommand;
 import au.com.grieve.multibridge.global.GlobalManager;
 import au.com.grieve.multibridge.instance.InstanceManager;

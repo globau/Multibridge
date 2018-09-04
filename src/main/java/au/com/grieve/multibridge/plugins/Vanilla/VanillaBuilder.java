@@ -1,4 +1,4 @@
-package au.com.grieve.multibridge.builder.Vanilla;
+package au.com.grieve.multibridge.plugins.Vanilla;
 
 /*
  * Makes use of VanillaCord
@@ -7,7 +7,7 @@ package au.com.grieve.multibridge.builder.Vanilla;
  */
 
 import au.com.grieve.multibridge.MultiBridge;
-import au.com.grieve.multibridge.builder.Vanilla.util.Version;
+import au.com.grieve.multibridge.plugins.Vanilla.util.Version;
 import au.com.grieve.multibridge.instance.Instance;
 import au.com.grieve.multibridge.instance.InstanceBuilder;
 import com.google.gson.*;

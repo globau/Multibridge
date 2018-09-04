@@ -1,4 +1,4 @@
-package au.com.grieve.multibridge.builder.Vanilla.util;
+package au.com.grieve.multibridge.plugins.Vanilla.util;
 
 import java.io.Serializable;
 
