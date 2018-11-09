@@ -1,5 +1,6 @@
-package au.com.grieve.multibridge.instance;
+package au.com.grieve.multibridge.objects;
 
+import au.com.grieve.multibridge.managers.InstanceManager;
 import au.com.grieve.multibridge.util.SimpleTemplate;
 import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
@@ -12,12 +13,25 @@ import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
 import net.md_5.bungee.event.EventHandler;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Definition of an Instance
@@ -55,7 +69,7 @@ public class Instance implements Listener {
     private BufferedReader reader;
     private BufferedWriter writer;
 
-    Instance(InstanceManager manager, Path instanceFolder) throws InstantiationException {
+    public Instance(InstanceManager manager, Path instanceFolder) throws InstantiationException {
         this.manager = manager;
         this.instanceFolder = instanceFolder;
         this.name = instanceFolder.getFileName().toString();
@@ -90,7 +104,7 @@ public class Instance implements Listener {
     /**
      * Cleanup Instance before destroying
      */
-    void cleanUp() {
+    public void cleanUp() {
 
         // Unregister ourself as a Listener
         manager.getPlugin().getProxy().getPluginManager().unregisterListener(this);
@@ -288,7 +302,37 @@ public class Instance implements Listener {
 
             manager.getPlugin().getProxy().getScheduler().runAsync(manager.getPlugin(), () -> {
                 try {
+                    // Get list of triggers
+                    Map<Pattern, Configuration> triggers = new HashMap<>();
+                    if (templateConfig.contains("triggers")) {
+                        Configuration section = templateConfig.getSection("triggers");
+                        triggers = section.getKeys().stream()
+                                .filter(s -> section.getSection(s).getString("match", null) != null)
+                                .collect(Collectors.toMap(s -> Pattern.compile(section.getSection(s).getString("match")), section::getSection));
+                    }
+
                     for (String line; ((line = reader.readLine()) != null); ) {
+                        // Check trigger
+                        for (Pattern p : triggers.keySet()) {
+                            Matcher m = p.matcher(line);
+                            while (m.find()) {
+                                System.out.println("[" + name + "] Found Match (" + p.pattern() + ").");
+                                for (String cmd : triggers.get(p).getStringList("commands")) {
+                                    for (int i = 1; i <= m.groupCount(); i++) {
+                                        cmd = cmd.replace("$" + i, m.group(i));
+                                    }
+
+                                    try {
+                                        System.out.println("[" + name + "] Sending Command: " + cmd);
+                                        writer.write(cmd + "\n");
+                                        writer.flush();
+                                    } catch (IOException e) {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
                         System.out.println("[" + name + "] " + line);
                     }
                 } catch (IOException ignored) {
@@ -690,7 +734,6 @@ public class Instance implements Listener {
      */
     @EventHandler
     public void onPlayerDisconnectEvent(PlayerDisconnectEvent event) {
-        System.err.println("Players: " + String.valueOf(manager.getPlugin().getProxy().getPlayers().size()));
         if (manager.getPlugin().getProxy().getPlayers().size() < 2) {
             if (getState() == State.STARTED && getStopMode() == StopMode.SERVER_EMPTY) {
                 manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {

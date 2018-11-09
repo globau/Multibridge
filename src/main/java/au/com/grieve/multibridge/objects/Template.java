@@ -1,4 +1,4 @@
-package au.com.grieve.multibridge.template;
+package au.com.grieve.multibridge.objects;
 
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;

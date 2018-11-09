@@ -7,13 +7,19 @@ package au.com.grieve.multibridge.plugins.Vanilla;
  */
 
 import au.com.grieve.multibridge.MultiBridge;
+import au.com.grieve.multibridge.interfaces.InstanceBuilder;
+import au.com.grieve.multibridge.objects.Instance;
 import au.com.grieve.multibridge.plugins.Vanilla.util.Version;
-import au.com.grieve.multibridge.instance.Instance;
-import au.com.grieve.multibridge.instance.InstanceBuilder;
-import com.google.gson.*;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonStreamParser;
 import net.md_5.bungee.config.Configuration;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;

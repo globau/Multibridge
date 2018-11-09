@@ -1,7 +1,7 @@
-package au.com.grieve.multibridge.global;
+package au.com.grieve.multibridge.managers;
 
 import au.com.grieve.multibridge.MultiBridge;
-import au.com.grieve.multibridge.instance.Instance;
+import au.com.grieve.multibridge.objects.Instance;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;

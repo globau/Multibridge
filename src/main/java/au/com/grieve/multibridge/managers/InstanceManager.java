@@ -1,16 +1,24 @@
-package au.com.grieve.multibridge.instance;
+package au.com.grieve.multibridge.managers;
 
 import au.com.grieve.multibridge.MultiBridge;
-import au.com.grieve.multibridge.template.Template;
+import au.com.grieve.multibridge.interfaces.InstanceBuilder;
+import au.com.grieve.multibridge.objects.Instance;
+import au.com.grieve.multibridge.objects.Template;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public class InstanceManager {
@@ -130,19 +138,19 @@ public class InstanceManager {
         instances.remove(instance.getName());
 
         // Remove the Directory
-        try (Stream<Path> stream = Files.walk(getInstanceFolder().resolve(instance.getName()))) {
-            //noinspection ResultOfMethodCallIgnored
-            stream.sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
-        }
+//        try (Stream<Path> stream = Files.walk(getInstanceFolder().resolve(instance.getName()))) {
+//            //noinspection ResultOfMethodCallIgnored
+//            stream.sorted(Comparator.reverseOrder())
+//                    .map(Path::toFile)
+//                    .forEach(File::delete);
+//        }
     }
 
     /**
      * Return a free port
      * @return port
      */
-    int getPort() throws IndexOutOfBoundsException {
+    public int getPort() throws IndexOutOfBoundsException {
         Configuration config = plugin.getConfig();
         Integer portMin = config.getInt("ports.min", 26000);
         Integer portMax = config.getInt("ports.max", 26100);
@@ -159,7 +167,7 @@ public class InstanceManager {
     /**
      * Release used port
      */
-    void releasePort(int port) {
+    public void releasePort(int port) {
         ports.remove(Integer.valueOf(port));
     }
 
@@ -203,7 +211,8 @@ public class InstanceManager {
             for (Path p : (Iterable<Path>) Files.walk(template.getTemplateFolder())::iterator) {
                 Files.copy(
                         p,
-                        target.resolve(template.getTemplateFolder().relativize(p)));
+                        target.resolve(template.getTemplateFolder().relativize(p)),
+                        LinkOption.NOFOLLOW_LINKS);
             }
 
             // Create new Instance Config
@@ -230,7 +239,7 @@ public class InstanceManager {
 
     }
 
-    MultiBridge getPlugin() {
+    public MultiBridge getPlugin() {
         return plugin;
     }
 

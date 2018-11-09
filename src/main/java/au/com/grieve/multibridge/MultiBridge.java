@@ -1,16 +1,18 @@
 package au.com.grieve.multibridge;
 
-import au.com.grieve.multibridge.plugins.Vanilla.VanillaBuilder;
 import au.com.grieve.multibridge.commands.MultiBridgeCommand;
-import au.com.grieve.multibridge.global.GlobalManager;
-import au.com.grieve.multibridge.instance.InstanceManager;
-import au.com.grieve.multibridge.template.TemplateManager;
+import au.com.grieve.multibridge.managers.GlobalManager;
+import au.com.grieve.multibridge.managers.InstanceManager;
+import au.com.grieve.multibridge.managers.TemplateManager;
+import au.com.grieve.multibridge.plugins.Vanilla.VanillaBuilder;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 
 public class MultiBridge extends Plugin {

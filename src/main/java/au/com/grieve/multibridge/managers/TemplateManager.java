@@ -1,13 +1,16 @@
-package au.com.grieve.multibridge.template;
+package au.com.grieve.multibridge.managers;
 
 import au.com.grieve.multibridge.MultiBridge;
+import au.com.grieve.multibridge.objects.Template;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;

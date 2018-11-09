@@ -1,8 +1,8 @@
 package au.com.grieve.multibridge.commands;
 
 import au.com.grieve.multibridge.MultiBridge;
-import au.com.grieve.multibridge.instance.Instance;
-import au.com.grieve.multibridge.template.Template;
+import au.com.grieve.multibridge.objects.Instance;
+import au.com.grieve.multibridge.objects.Template;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -12,7 +12,13 @@ import net.md_5.bungee.api.plugin.TabExecutor;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class MultiBridgeCommand extends Command implements TabExecutor {
     final private MultiBridge plugin;
