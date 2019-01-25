@@ -213,7 +213,7 @@ public class Instance implements Listener {
                 name,
                 new InetSocketAddress("127.0.0.1", port),
                 name,
-                true);
+                getTagBoolean("MB_RESTRICTED"));
         manager.getPlugin().getProxy().getServers().put(name, info);
         bungeeRegistered = true;
     }
