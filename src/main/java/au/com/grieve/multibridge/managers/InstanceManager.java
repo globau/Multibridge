@@ -182,23 +182,24 @@ public class InstanceManager {
     public Instance create(String templateName, String instanceName) throws IOException {
         Template template = plugin.getTemplateManager().getTemplate(templateName);
 
+        // Does Template Exist?
+        if (template == null) {
+            throw new IOException("Template does not exist");
+        }
+
+        // Does Instance Already exist?
+        if (getInstance(instanceName) != null) {
+            throw new IOException("Instance already exists");
+        }
+
+        // Can't create same name as a bungee server
+        if (plugin.getProxy().getServers().containsKey(instanceName)) {
+            throw new IOException("An existing Bungee server already exists with that name");
+        }
+
         // We always want to delete the folder if we have an exception
+
         try {
-
-            // Does Template Exist?
-            if (template == null) {
-                throw new IOException("Template does not exist");
-            }
-
-            // Does Instance Already exist?
-            if (getInstance(instanceName) != null) {
-                throw new IOException("Instance already exists");
-            }
-
-            // Can't create same name as a bungee server
-            if (plugin.getProxy().getServers().containsKey(instanceName)) {
-                throw new IOException("An existing Bungee server already exists with that name");
-            }
 
             Path target = getInstanceFolder().resolve(instanceName);
 
@@ -232,7 +233,7 @@ public class InstanceManager {
 
         } catch (Throwable e) {
             e.printStackTrace();
-            deletePath(getInstanceFolder());
+            deletePath(getInstanceFolder().resolve(instanceName));
             throw new IOException(e.getMessage());
         }
 
