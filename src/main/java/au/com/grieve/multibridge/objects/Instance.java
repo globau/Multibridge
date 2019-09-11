@@ -2,6 +2,8 @@ package au.com.grieve.multibridge.objects;
 
 import au.com.grieve.multibridge.managers.InstanceManager;
 import au.com.grieve.multibridge.util.SimpleTemplate;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
 import net.md_5.bungee.api.event.PreLoginEvent;
@@ -376,6 +378,8 @@ public class Instance implements Listener {
                                 return;
                             }
 
+                            System.out.println("[mb-debug]" + serverPing + ", " + ex);
+
                             System.out.println("[" + name + "] " + "Instance has started");
 
                             // Instance has started
@@ -688,43 +692,51 @@ public class Instance implements Listener {
     @EventHandler
     public void onServerConnectEvent(ServerConnectEvent event) {
         if (event.getTarget().getName().equalsIgnoreCase(name)) {
-            if (getAuto() && getState() == State.STOPPED && (getStartMode() == StartMode.INSTANCE_JOIN || getStartMode() == StartMode.SERVER_JOIN)) {
+            if (getAuto() && (getState() == State.STOPPED || getState() == State.STARTING) && (getStartMode() == StartMode.INSTANCE_JOIN || getStartMode() == StartMode.SERVER_JOIN)) {
                 // Cancel the event and wait for it to really come up
                 event.setCancelled(true);
 
-                manager.getPlugin().getProxy().getScheduler().runAsync(manager.getPlugin(), () -> {
-                    System.out.println("[" + name + "] " + "Auto-Starting: Instance Join");
-                    try {
-                        start();
-                    } catch (IOException e) {
-                        System.out.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
-                        return;
-                    }
+                event.getPlayer().sendMessage(new ComponentBuilder("Connecting to '").color(ChatColor.GRAY)
+                        .append(getName()).color(ChatColor.RED)
+                        .append("'. This may take up to 30 seconds.").color(ChatColor.GRAY).create());
 
-                    // Get current time
-                    Date date = new Date();
-                    long startTime = date.getTime();
-
-                    // Wait for Server to be up
-                    manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), new Runnable() {
-                        @Override
-                        public void run() {
-                            switch(getState()) {
-                                case STARTING:
-                                    if (date.getTime() - startTime > (getStartDelay()*1000)) {
-                                        System.err.println("[" + name + "] " + "Failed to connect to Instance: Timed out");
-                                        break;
-                                    }
-                                    manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), this, 2, TimeUnit.SECONDS);
-                                    break;
-                                case STARTED:
-                                    // Send player to Server
-                                    event.getPlayer().connect(event.getTarget());
-                                    break;
-                            }
+                if (getState() == State.STOPPED) {
+                    manager.getPlugin().getProxy().getScheduler().runAsync(manager.getPlugin(), () -> {
+                        System.out.println("[" + name + "] " + "Auto-Starting: Instance Join");
+                        try {
+                            start();
+                        } catch (IOException e) {
+                            System.out.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
+                            return;
                         }
-                    }, 2, TimeUnit.SECONDS);
-                });
+
+                        // Get current time
+                        Date date = new Date();
+                        long startTime = date.getTime();
+
+                        // Wait for Server to be up
+                        manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), new Runnable() {
+                            @Override
+                            public void run() {
+                                System.err.println("[mb-debug]: Checking");
+                                switch (getState()) {
+                                    case STARTING:
+                                        if (date.getTime() - startTime > (getStartDelay() * 1000)) {
+                                            System.err.println("[" + name + "] " + "Failed to connect to Instance: Timed out");
+                                            break;
+                                        }
+                                        manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), this, 2, TimeUnit.SECONDS);
+                                        break;
+                                    case STARTED:
+                                        // Send player to Server
+                                        System.err.println("[mb-debug]: Sending to server");
+                                        event.getPlayer().connect(event.getTarget());
+                                        break;
+                                }
+                            }
+                        }, 2, TimeUnit.SECONDS);
+                    });
+                }
             }
         }
     }
