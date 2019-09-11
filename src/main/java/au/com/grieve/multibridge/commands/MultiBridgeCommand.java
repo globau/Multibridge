@@ -71,6 +71,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             sender.sendMessage(new ComponentBuilder("/mb").color(ChatColor.RED).append(" template").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb").color(ChatColor.RED).append(" instance").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb").color(ChatColor.RED).append(" global").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb").color(ChatColor.RED).append(" reload").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("Add").color(ChatColor.DARK_AQUA)
                     .append(" help").color(ChatColor.YELLOW)
                     .append(" to the end of any command to get more help.").color(ChatColor.DARK_AQUA)
@@ -89,6 +90,9 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 break;
             case "global":
                 subcommandGlobal(sender, arguments.shift());
+                break;
+            case "reload":
+                reload(sender, arguments.shift());
                 break;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
@@ -334,7 +338,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                     .append("Start when Server Starts").color(ChatColor.GREEN).create());
             sender.sendMessage(new ComponentBuilder("  SERVER_JOIN - ").color(ChatColor.DARK_AQUA)
                     .append("Start when a player joins the server").color(ChatColor.GREEN).create());
-            sender.sendMessage(new ComponentBuilder("  INSTANCE_START - ").color(ChatColor.DARK_AQUA)
+            sender.sendMessage(new ComponentBuilder("  INSTANCE_JOIN - ").color(ChatColor.DARK_AQUA)
                     .append("Start when a player tries to connect to instance").color(ChatColor.GREEN).create());
             sender.sendMessage(new ComponentBuilder("  MANUAL - ").color(ChatColor.DARK_AQUA)
                     .append("Disabled").color(ChatColor.GREEN).create());
@@ -1007,6 +1011,22 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 .limit(10)
                 .forEach( s-> sender.sendMessage(new ComponentBuilder(s.getKey() + ": ").color(ChatColor.DARK_AQUA)
                         .append(s.getValue()).color(ChatColor.GREEN).create()));
+    }
+
+    /**
+     * List Global Tags
+     *
+     */
+    private void reload(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() > 0 && arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Reload Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("Reload configuration").color(ChatColor.DARK_AQUA).create());
+            return;
+        }
+
+        plugin.getInstanceManager().reloadConfig();
+
+        sender.sendMessage(new ComponentBuilder("Reloaded Config").color(ChatColor.YELLOW).create());
     }
 
 }

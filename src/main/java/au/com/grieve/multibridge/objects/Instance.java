@@ -335,7 +335,9 @@ public class Instance implements Listener {
                             }
                         }
 
-                        System.out.println("[" + name + "] " + line);
+                        if (getTagBoolean("MB_LOGOUTPUT", true)) {
+                            System.out.println("[" + name + "] " + line);
+                        }
                     }
                 } catch (IOException ignored) {
                 } finally {

@@ -109,6 +109,10 @@ public class InstanceManager {
         });
     }
 
+    public void reloadConfig() {
+        loadInstances();
+    }
+
     /**
      * Return an instance by name
      */
