@@ -710,9 +710,9 @@ public class Instance implements Listener {
                             return;
                         }
 
-                        // Get current time
-                        Date date = new Date();
-                        long startTime = date.getTime();
+                // Get current time
+                Date date = new Date();
+                long startTime = date.getTime();
 
                         // Wait for Server to be up
                         manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), new Runnable() {

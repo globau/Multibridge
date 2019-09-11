@@ -6,18 +6,18 @@
 
     <groupId>au.com.grieve.multibridge</groupId>
     <artifactId>MultiBridge</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1-SNAPSHOT</version>
 
     <repositories>
         <repository>
             <id>bungeecord-repo</id>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </repository>
-        <repository>
-            <id>mojang</id>
-            <name>Mojang's Repository</name>
-            <url>https://libraries.minecraft.net/</url>
-        </repository>
+<!--        <repository>-->
+<!--            <id>mojang</id>-->
+<!--            <name>Mojang's Repository</name>-->
+<!--            <url>https://libraries.minecraft.net/</url>-->
+<!--        </repository>-->
     </repositories>
 
     <build>
@@ -39,15 +39,8 @@
         <dependency>
             <groupId>net.md-5</groupId>
             <artifactId>bungeecord-api</artifactId>
-            <version>1.13-SNAPSHOT</version>
+            <version>1.12-SNAPSHOT</version>
             <type>jar</type>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.md-5</groupId>
-            <artifactId>bungeecord-api</artifactId>
-            <version>1.13-SNAPSHOT</version>
-            <type>javadoc</type>
             <scope>provided</scope>
         </dependency>
 
