@@ -14,6 +14,7 @@ import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
 import net.md_5.bungee.event.EventHandler;
+import net.md_5.bungee.event.EventPriority;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -335,7 +336,7 @@ public class Instance implements Listener {
                             }
                         }
 
-                        if (getTagBoolean("MB_LOGOUTPUT", true)) {
+                        if (getTagBoolean("MB_LOG_OUTPUT", true)) {
                             System.out.println("[" + name + "] " + line);
                         }
                     }
@@ -691,8 +692,11 @@ public class Instance implements Listener {
     /**
      * Check if we need to start before a player connects to our instance
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onServerConnectEvent(ServerConnectEvent event) {
+        if (event.isCancelled()) {
+            return;
+        }
         if (event.getTarget().getName().equalsIgnoreCase(name)) {
             if (getAuto() && (getState() == State.STOPPED || getState() == State.STARTING) && (getStartMode() == StartMode.INSTANCE_JOIN || getStartMode() == StartMode.SERVER_JOIN)) {
                 // Cancel the event and wait for it to really come up
@@ -741,6 +745,7 @@ public class Instance implements Listener {
                 }
             }
         }
+        System.err.println("[mb-debug]: " + event.getTarget().getName() + " " + getName() + " " + event.isCancelled());
     }
 
     /**
