@@ -381,8 +381,6 @@ public class Instance implements Listener {
                                 return;
                             }
 
-                            System.out.println("[mb-debug]" + serverPing + ", " + ex);
-
                             System.out.println("[" + name + "] " + "Instance has started");
 
                             // Instance has started
@@ -724,7 +722,6 @@ public class Instance implements Listener {
                         manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), new Runnable() {
                             @Override
                             public void run() {
-                                System.err.println("[mb-debug]: Checking");
                                 switch (getState()) {
                                     case STARTING:
                                         if (date.getTime() - startTime > (getStartDelay() * 1000)) {
@@ -735,7 +732,6 @@ public class Instance implements Listener {
                                         break;
                                     case STARTED:
                                         // Send player to Server
-                                        System.err.println("[mb-debug]: Sending to server");
                                         event.getPlayer().connect(event.getTarget());
                                         break;
                                 }
@@ -745,7 +741,6 @@ public class Instance implements Listener {
                 }
             }
         }
-        System.err.println("[mb-debug]: " + event.getTarget().getName() + " " + getName() + " " + event.isCancelled());
     }
 
     /**
