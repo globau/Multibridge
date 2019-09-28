@@ -180,6 +180,7 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
             sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" info").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" tag").color(ChatColor.YELLOW).create());
             sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" auto").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" cmd").color(ChatColor.YELLOW).create());
 //            sender.sendMessage(new ComponentBuilder("/mb instance").color(ChatColor.RED).append(" send").color(ChatColor.YELLOW).create());
             return;
         }
@@ -208,6 +209,9 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 break;
             case "auto":
                 subcommandInstanceAuto(sender, arguments.shift());
+                break;
+            case "cmd":
+                instanceCmd(sender, arguments.shift());
                 break;
             default:
                 sender.sendMessage(new ComponentBuilder("Unknown Command").color(ChatColor.DARK_RED).create());
@@ -683,6 +687,53 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
                 sender.sendMessage(new ComponentBuilder("Instance Started").color(ChatColor.GREEN).create());
             } catch (IOException e) {
                 sender.sendMessage(new ComponentBuilder("Unable to start Instance: ").color(ChatColor.RED)
+                        .append(e.getMessage()).color(ChatColor.YELLOW).create());
+            }
+        });
+
+
+
+    }
+
+    /**
+     * Send cmmand to running Server Instance
+     *
+     */
+    private void instanceCmd(CommandSender sender, Arguments arguments) {
+        if (arguments.args.size() == 0 || arguments.args.get(0).equalsIgnoreCase("help")) {
+            sender.sendMessage(new ComponentBuilder("--- [ Instance CMD Help ] ---").color(ChatColor.AQUA).create());
+            sender.sendMessage(new ComponentBuilder("Send command to instance console").color(ChatColor.DARK_AQUA).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance cmd").color(ChatColor.RED).append(" <instance_name> <command>...").color(ChatColor.YELLOW).create());
+            sender.sendMessage(new ComponentBuilder("Examples:").color(ChatColor.LIGHT_PURPLE).create());
+            sender.sendMessage(new ComponentBuilder("/mb instance cmd").color(ChatColor.RED).append(" World1 op Bundie").color(ChatColor.YELLOW).create());
+            return;
+        }
+
+        // Arguments
+        final String instanceName = arguments.args.get(0);
+        Instance instance = plugin.getInstanceManager().getInstance(instanceName);
+
+        if (instance == null) {
+            sender.sendMessage(new ComponentBuilder("Cannot find Instance").color(ChatColor.RED).create());
+            return;
+        }
+
+        if (!instance.isRunning()) {
+            sender.sendMessage(new ComponentBuilder("Instance is not running").color(ChatColor.RED).create());
+            return;
+        }
+
+        // Schedule the task
+        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+
+            // Start Instance
+            try {
+                instance.sendCommand(String.join(" ", arguments.shift().args));
+
+                // Success
+                sender.sendMessage(new ComponentBuilder("Sending command").color(ChatColor.GREEN).create());
+            } catch (IOException e) {
+                sender.sendMessage(new ComponentBuilder("Unable to send command: ").color(ChatColor.RED)
                         .append(e.getMessage()).color(ChatColor.YELLOW).create());
             }
         });

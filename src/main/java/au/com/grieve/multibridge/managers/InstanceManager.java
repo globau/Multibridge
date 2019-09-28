@@ -78,14 +78,14 @@ public class InstanceManager {
                         String name = p.getFileName().toString();
                         if (!old.containsKey(name)) {
                             // Can't create same name as a bungee server, so skip if so
-                            if (!plugin.getProxy().getServers().containsKey(name)) {
-                                try {
-                                    Instance instance = new Instance(this, p);
-                                    instances.put(instance.getName(), instance);
-                                } catch (InstantiationException e) {
-                                    e.printStackTrace();
-                                }
+//                            if (!plugin.getProxy().getServers().containsKey(name)) {
+                            try {
+                                Instance instance = new Instance(this, p);
+                                instances.put(instance.getName(), instance);
+                            } catch (InstantiationException e) {
+                                e.printStackTrace();
                             }
+//                            }
                         } else {
                             instances.put(name, old.get(name));
                             old.remove(name);

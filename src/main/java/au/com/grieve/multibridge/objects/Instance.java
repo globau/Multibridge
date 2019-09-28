@@ -89,17 +89,19 @@ public class Instance implements Listener {
         name = instanceConfig.getString("name", name);
 
         // Handle StartMode
-        switch(getStartMode()) {
-            case SERVER_START:
-                manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
-                    System.out.println("[" + name + "] " + "Auto-Starting: Server Start");
-                    try {
-                        start();
-                    } catch (IOException e) {
-                        System.err.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
-                    }
-                }, getStartDelay(), TimeUnit.SECONDS);
-                break;
+        if (getAuto()) {
+            switch (getStartMode()) {
+                case SERVER_START:
+                    manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
+                        System.out.println("[" + name + "] " + "Auto-Starting: Server Start");
+                        try {
+                            start();
+                        } catch (IOException e) {
+                            System.err.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
+                        }
+                    }, getStartDelay(), TimeUnit.SECONDS);
+                    break;
+            }
         }
 
         updateAuto();
@@ -212,7 +214,18 @@ public class Instance implements Listener {
             return;
         }
 
-        port = manager.getPort();
+        // If already in bungee we skip steps
+        if (manager.getPlugin().getProxy().getServers().containsKey(name)) {
+            port = manager.getPlugin().getProxy().getServers().get(name).getAddress().getPort();
+            bungeeRegistered = true;
+            return;
+        }
+
+        if (getTag("MB_FORCE_SERVER_PORT") != null) {
+            port = getTagInt("MB_FORCE_SERVER_PORT");
+        } else {
+            port = manager.getPort();
+        }
         ServerInfo info = manager.getPlugin().getProxy().constructServerInfo(
                 name,
                 new InetSocketAddress("127.0.0.1", port),
@@ -257,6 +270,23 @@ public class Instance implements Listener {
 
     public boolean getAuto() {
         return instanceConfig.getBoolean("auto.enabled", false);
+    }
+
+    /**
+     * Send command to instance
+     */
+    public void sendCommand(String command) throws IOException {
+        if (getState() != State.STARTED) {
+            throw new IOException("Not running");
+        }
+
+        if (writer == null) {
+            throw new IOException("Unable to send command to Instance");
+        }
+
+        System.out.println("[" + name + "] Sending Command: " + command);
+        writer.write(command + "\n");
+        writer.flush();
     }
 
     /**
