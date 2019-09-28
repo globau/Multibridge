@@ -86,6 +86,7 @@ public class Instance implements Listener {
         manager.getPlugin().getProxy().getPluginManager().registerListener(manager.getPlugin(), this);
 
         loadConfig();
+        name = instanceConfig.getString("name", name);
 
         // Handle StartMode
         switch(getStartMode()) {
@@ -714,9 +715,9 @@ public class Instance implements Listener {
                             return;
                         }
 
-                // Get current time
-                Date date = new Date();
-                long startTime = date.getTime();
+                        // Get current time
+                        Date date = new Date();
+                        long startTime = date.getTime();
 
                         // Wait for Server to be up
                         manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), new Runnable() {
@@ -751,7 +752,6 @@ public class Instance implements Listener {
         if (manager.getPlugin().getProxy().getPlayers().size() < 2) {
             if (getState() == State.STARTED && getStopMode() == StopMode.SERVER_EMPTY) {
                 manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
-                    System.err.println("Players: " + String.valueOf(manager.getPlugin().getProxy().getPlayers().size()));
                     if (manager.getPlugin().getProxy().getPlayers().size() < 1) {
                         System.out.println("[" + name + "] " + "Auto-Stopping: Server Empty");
                         try {
