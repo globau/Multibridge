@@ -64,10 +64,12 @@ public class InstanceManager {
         Map<String, Instance> old = instances;
         instances = new HashMap<>();
 
-        try {
-            Files.createDirectories(getInstanceFolder());
-        } catch (IOException e) {
-            return;
+        if (!Files.exists(getInstanceFolder())) {
+            try {
+                Files.createDirectories(getInstanceFolder());
+            } catch (IOException e) {
+                return;
+            }
         }
 
         try (Stream<Path> paths = Files.list(getInstanceFolder())) {
