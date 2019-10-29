@@ -412,28 +412,34 @@ public class Instance implements Listener {
                                 return;
                             }
 
-                            System.out.println("[" + name + "] " + "Instance has started");
+                            // Schedule holdoff
+                            manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), new Runnable() {
+                                @Override
+                                public void run() {
+                                    System.out.println("[" + name + "] " + "Instance has started");
 
-                            // Instance has started
-                            setState(State.STARTED);
+                                    // Instance has started
+                                    setState(State.STARTED);
 
-                            // If we have startup commands lets schedule that now
-                            if (templateConfig.getStringList("start.commands").size() > 0) {
-                                System.out.println("[" + name + "] Waiting to send Start Commands");
-                                manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
-                                    if (isRunning()) {
-                                        for (String cmd : templateConfig.getStringList("start.commands")) {
-                                            try {
-                                                System.out.println("[" + name + "] Sending Command: " + cmd);
-                                                writer.write(cmd + "\n");
-                                                writer.flush();
-                                            } catch (IOException e) {
-                                                break;
+                                    // If we have startup commands lets schedule that now
+                                    if (templateConfig.getStringList("start.commands").size() > 0) {
+                                        System.out.println("[" + name + "] Waiting to send Start Commands");
+                                        manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), () -> {
+                                            if (isRunning()) {
+                                                for (String cmd : templateConfig.getStringList("start.commands")) {
+                                                    try {
+                                                        System.out.println("[" + name + "] Sending Command: " + cmd);
+                                                        writer.write(cmd + "\n");
+                                                        writer.flush();
+                                                    } catch (IOException e) {
+                                                        break;
+                                                    }
+                                                }
                                             }
-                                        }
+                                        }, templateConfig.getInt("start.delay", 30), TimeUnit.SECONDS);
                                     }
-                                }, templateConfig.getInt("start.delay", 30), TimeUnit.SECONDS);
-                            }
+                                }
+                            }, getTagInt("MB_HOLDOFF", 5), TimeUnit.SECONDS);
                         }
                     });
                 }
@@ -736,39 +742,37 @@ public class Instance implements Listener {
                         .append("'. This may take up to 30 seconds.").color(ChatColor.GRAY).create());
 
                 if (getState() == State.STOPPED) {
-                    manager.getPlugin().getProxy().getScheduler().runAsync(manager.getPlugin(), () -> {
-                        System.out.println("[" + name + "] " + "Auto-Starting: Instance Join");
-                        try {
-                            start();
-                        } catch (IOException e) {
-                            System.out.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
-                            return;
-                        }
+                    System.out.println("[" + name + "] " + "Auto-Starting: Instance Join");
+                    try {
+                        start();
+                    } catch (IOException e) {
+                        System.out.println("[" + name + "] " + "Failed to Start: " + e.getMessage());
+                        return;
+                    }
 
-                        // Get current time
-                        Date date = new Date();
-                        long startTime = date.getTime();
+                    // Get current time
+                    Date date = new Date();
+                    long startTime = date.getTime();
 
-                        // Wait for Server to be up
-                        manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), new Runnable() {
-                            @Override
-                            public void run() {
-                                switch (getState()) {
-                                    case STARTING:
-                                        if (date.getTime() - startTime > (getStartDelay() * 1000)) {
-                                            System.err.println("[" + name + "] " + "Failed to connect to Instance: Timed out");
-                                            break;
-                                        }
-                                        manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), this, 2, TimeUnit.SECONDS);
+                    // Wait for Server to be up
+                    manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), new Runnable() {
+                        @Override
+                        public void run() {
+                            switch (getState()) {
+                                case STARTING:
+                                    if (date.getTime() - startTime > (getStartDelay() * 1000)) {
+                                        System.err.println("[" + name + "] " + "Failed to connect to Instance: Timed out");
                                         break;
-                                    case STARTED:
-                                        // Send player to Server
-                                        event.getPlayer().connect(event.getTarget());
-                                        break;
-                                }
+                                    }
+                                    manager.getPlugin().getProxy().getScheduler().schedule(manager.getPlugin(), this, 2, TimeUnit.SECONDS);
+                                    break;
+                                case STARTED:
+                                    // Send player to Server
+                                    event.getPlayer().connect(event.getTarget());
+                                    break;
                             }
-                        }, 2, TimeUnit.SECONDS);
-                    });
+                        }
+                    }, 2, TimeUnit.SECONDS);
                 }
             }
         }
