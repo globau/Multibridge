@@ -19,8 +19,9 @@ public class SimpleTemplate {
 
     /**
      * Given a string, return it with the placeholders replaced
+     * Throws IOException if the string references a variable not provided in placeHolders
      */
-    public String replace(String input) {
+    public String replace(String input) throws IOException {
         Pattern p = Pattern.compile("\\{\\{([a-zA-Z0-9_]+)}}");
 
         for(int maxTries=20;maxTries > 0;maxTries--) {
@@ -31,11 +32,10 @@ public class SimpleTemplate {
             while (m.find()) {
                 String tag = m.group(1).toUpperCase();
                 if (!placeHolders.containsKey(tag)) {
-                    m.appendReplacement(sb, Matcher.quoteReplacement(m.group(0)));
-                } else {
-                    found = true;
-                    m.appendReplacement(sb, Matcher.quoteReplacement(placeHolders.get(tag)));
+                    throw new MissingVariable(tag);
                 }
+                found = true;
+                m.appendReplacement(sb, Matcher.quoteReplacement(placeHolders.get(tag)));
             }
 
             if (!found) {
@@ -52,14 +52,24 @@ public class SimpleTemplate {
      * Given an inFile and outFile, replace all placeholders in inFile and save to Outfile
      */
     public void replace(Path inFile, Path outFile) throws IOException {
-        BufferedWriter writer = new BufferedWriter(new FileWriter(outFile.toFile()));
-        BufferedReader reader = new BufferedReader(new FileReader(inFile.toFile()));
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(outFile.toFile()));
+            BufferedReader reader = new BufferedReader(new FileReader(inFile.toFile()));
 
-        for (String line; ((line = reader.readLine()) != null); ) {
-            writer.write(replace(line));
-            writer.newLine();
+            for (String line; ((line = reader.readLine()) != null); ) {
+                writer.write(replace(line));
+                writer.newLine();
+            }
+        } catch (MissingVariable e) {
+            System.err.println(inFile + ": " + e.getMessage());
+        } catch (IOException e) {
+            throw new IOException(inFile + ": " + e.getMessage());
         }
-        writer.close();
-        reader.close();
+    }
+
+    private static class MissingVariable extends IOException {
+        MissingVariable(String variable) {
+            super("Missing value for template variable: " + variable);
+        }
     }
 }
