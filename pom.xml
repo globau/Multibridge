@@ -6,7 +6,7 @@
 
     <groupId>au.com.grieve.multibridge</groupId>
     <artifactId>MultiBridge</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.3.0-SNAPSHOT</version>
 
     <repositories>
         <repository>
@@ -54,6 +54,21 @@
 
 
     </dependencies>
+
+    <distributionManagement>
+        <repository>
+            <id>bundabrg-repo</id>
+            <url>
+                https://repo.worldguard.com.au/repository/maven-releases
+            </url>
+        </repository>
+        <snapshotRepository>
+            <id>bundabrg-repo</id>
+            <url>
+                https://repo.worldguard.com.au/repository/maven-snapshots
+            </url>
+        </snapshotRepository>
+    </distributionManagement>
 
 
 </project>
