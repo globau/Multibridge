@@ -1,6 +1,10 @@
 package au.com.grieve.multibridge.util;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -56,6 +60,9 @@ public class SimpleTemplate {
         writer.write(replace(line));
         writer.newLine();
       }
+
+      writer.close();
+      reader.close();
     } catch (MissingVariable e) {
       System.err.println(inFile + ": " + e.getMessage());
     } catch (IOException e) {

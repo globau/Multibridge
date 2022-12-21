@@ -3,6 +3,13 @@ package au.com.grieve.multibridge.commands;
 import au.com.grieve.multibridge.MultiBridge;
 import au.com.grieve.multibridge.objects.Instance;
 import au.com.grieve.multibridge.objects.Template;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.plugin.Command;
+import net.md_5.bungee.api.plugin.TabExecutor;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -12,12 +19,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.CommandSender;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.plugin.Command;
-import net.md_5.bungee.api.plugin.TabExecutor;
 
 public class MultiBridgeCommand extends Command implements TabExecutor {
   private final MultiBridge plugin;
@@ -1633,26 +1634,28 @@ public class MultiBridgeCommand extends Command implements TabExecutor {
     sender.sendMessage(new ComponentBuilder("--- Global Tags ---").color(ChatColor.AQUA).create());
 
     plugin.getGlobalManager().getTags().entrySet().stream()
-        .sorted(Comparator.comparing(Map.Entry::getKey))
-        .skip((page - 1) * 10)
-        .limit(10)
-        .forEach(
-            s ->
-                sender.sendMessage(
-                    new ComponentBuilder(s.getKey() + ": ")
-                        .color(ChatColor.DARK_AQUA)
-                        .append(s.getValue())
-                        .color(ChatColor.GREEN)
-                        .create()));
+            .sorted(Comparator.comparing(Map.Entry::getKey))
+            .skip((page - 1) * 10)
+            .limit(10)
+            .forEach(
+                    s ->
+                            sender.sendMessage(
+                                    new ComponentBuilder(s.getKey() + ": ")
+                                            .color(ChatColor.DARK_AQUA)
+                                            .append(s.getValue())
+                                            .color(ChatColor.GREEN)
+                                            .create()));
   }
 
-  /** List Global Tags */
+  /**
+   * Reload Config
+   */
   private void reload(CommandSender sender, Arguments arguments) {
     if (arguments.args.size() > 0 && arguments.args.get(0).equalsIgnoreCase("help")) {
       sender.sendMessage(
-          new ComponentBuilder("--- [ Reload Help ] ---").color(ChatColor.AQUA).create());
+              new ComponentBuilder("--- [ Reload Help ] ---").color(ChatColor.AQUA).create());
       sender.sendMessage(
-          new ComponentBuilder("Reload configuration").color(ChatColor.DARK_AQUA).create());
+              new ComponentBuilder("Reload configuration").color(ChatColor.DARK_AQUA).create());
       return;
     }
 
