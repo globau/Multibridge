@@ -834,6 +834,8 @@ public class Instance implements Listener {
                               .schedule(manager.getPlugin(), this, 2, TimeUnit.SECONDS);
                           break;
                         case STARTED:
+                          // Schedule auto-stop to ensure never-join Servers are stopped
+                          scheduleEmptyStop(event.getTarget());
                           // Send player to Server
                           event.getPlayer().connect(event.getTarget());
                           break;
@@ -878,26 +880,31 @@ public class Instance implements Listener {
   @EventHandler
   public void onServerDisconnectEvent(ServerDisconnectEvent event) {
     if (event.getTarget().getName().equals(name) && event.getTarget().getPlayers().size() < 2) {
-      if (getState() == State.STARTED && getStopMode() == StopMode.INSTANCE_EMPTY) {
-        manager
-            .getPlugin()
-            .getProxy()
-            .getScheduler()
-            .schedule(
-                manager.getPlugin(),
-                () -> {
-                  if (event.getTarget().getPlayers().size() < 1) {
-                    System.out.println("[" + name + "] " + "Auto-Stopping: Instance Empty");
-                    try {
-                      stop();
-                    } catch (IOException e) {
-                      System.err.println("[" + name + "] " + "Failed to stop:" + e.getMessage());
-                    }
+      scheduleEmptyStop(event.getTarget());
+    }
+  }
+
+  /** Schedule shutdown ifan instance is configured to automatically stop when empty */
+  private void scheduleEmptyStop(ServerInfo serverInfo) {
+    if (getState() == State.STARTED && getStopMode() == StopMode.INSTANCE_EMPTY) {
+      manager
+          .getPlugin()
+          .getProxy()
+          .getScheduler()
+          .schedule(
+              manager.getPlugin(),
+              () -> {
+                if (serverInfo.getPlayers().size() < 1) {
+                  System.out.println("[" + name + "] " + "Auto-Stopping: Instance Empty");
+                  try {
+                    stop();
+                  } catch (IOException e) {
+                    System.err.println("[" + name + "] " + "Failed to stop:" + e.getMessage());
                   }
-                },
-                getStopDelay(),
-                TimeUnit.SECONDS);
-      }
+                }
+              },
+              getStopDelay(),
+              TimeUnit.SECONDS);
     }
   }
 }
